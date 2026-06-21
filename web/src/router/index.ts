@@ -8,11 +8,15 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', component: HomeView },
+    { path: '/practice', redirect: '/#certs' },
     { path: '/cert/:certId', component: CertView },
     { path: '/cert/:certId/chapter/:chapterId', component: PracticeView },
     { path: '/results', component: ResultView },
   ],
-  scrollBehavior() {
+  scrollBehavior(to) {
+    if (to.hash) {
+      return { el: to.hash, behavior: 'smooth', top: 72 }
+    }
     return { top: 0 }
   },
 })

@@ -59,9 +59,24 @@ const breadcrumb = computed(() => {
         <span>AWS 認定試験 練習</span>
       </RouterLink>
 
-      <!-- Breadcrumb (center) -->
-      <nav v-if="breadcrumb" class="hidden sm:flex items-center text-sm text-slate-300 mx-4 truncate">
-        <span class="truncate">{{ breadcrumb }}</span>
+      <!-- Nav / Breadcrumb (center) -->
+      <nav class="hidden sm:flex items-center gap-6 text-sm mx-4 min-w-0">
+        <RouterLink
+          v-if="!breadcrumb"
+          to="/#certs"
+          class="text-slate-300 hover:text-white transition-colors font-medium"
+        >
+          {{ settingsStore.lang === 'en' ? 'Practice' : settingsStore.lang === 'zh' ? '练习' : '練習' }}
+        </RouterLink>
+        <a
+          v-if="!breadcrumb"
+          href="https://apps.apple.com/app/id[placeholder]"
+          target="_blank"
+          class="text-slate-300 hover:text-white transition-colors font-medium"
+        >
+          iOS App
+        </a>
+        <span v-if="breadcrumb" class="text-slate-300 truncate">{{ breadcrumb }}</span>
       </nav>
 
       <!-- Language switcher -->
