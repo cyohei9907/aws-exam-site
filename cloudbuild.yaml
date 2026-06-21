@@ -1,0 +1,77 @@
+# Cloud Build CI/CD — aws-exam-site
+# Triggered on push to main branch
+# Builds Vue3 + Fastify, deploys to acggs-prod VM
+# SAFE: only restarts aws-exam.service, never touches acggs service
+
+steps:
+  # ─── Build API (TypeScript → Node.js) ───────────────────────────────────────
+  - name: 'node:20-slim'
+    id: 'build-api'
+    dir: 'api'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'npm install && npm run build'
+
+  # ─── Build Web (Vue 3 → static files) ───────────────────────────────────────
+  - name: 'node:20-slim'
+    id: 'build-web'
+    dir: 'web'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'npm install && npm run build'
+
+  # ─── Deploy to Compute Engine VM ────────────────────────────────────────────
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy'
+    waitFor: ['build-api', 'build-web']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        ZONE=asia-northeast1-a
+        INSTANCE=acggs-prod
+        REMOTE=/var/www/aws-exam-site
+
+        # Suppress SSH host key prompts (fresh container, no known_hosts)
+        mkdir -p ~/.ssh
+        printf 'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n' > ~/.ssh/config
+        chmod 600 ~/.ssh/config
+
+        echo "==> Preparing staging directory on VM..."
+        gcloud compute ssh "$INSTANCE" --zone="$ZONE" --project="$PROJECT_ID" \
+          --command='mkdir -p /tmp/aws-exam-deploy/api/dist /tmp/aws-exam-deploy/web/dist'
+
+        echo "==> Uploading API build..."
+        gcloud compute scp --recurse api/dist/ \
+          "$INSTANCE:/tmp/aws-exam-deploy/api/dist/" \
+          --zone="$ZONE" --project="$PROJECT_ID"
+        gcloud compute scp api/package.json \
+          "$INSTANCE:/tmp/aws-exam-deploy/api/package.json" \
+          --zone="$ZONE" --project="$PROJECT_ID"
+
+        echo "==> Uploading web build..."
+        gcloud compute scp --recurse web/dist/ \
+          "$INSTANCE:/tmp/aws-exam-deploy/web/dist/" \
+          --zone="$ZONE" --project="$PROJECT_ID"
+
+        echo "==> Running deploy on VM (only aws-exam-site, acggs is untouched)..."
+        gcloud compute ssh "$INSTANCE" --zone="$ZONE" --project="$PROJECT_ID" \
+          --command='
+            set -e
+            sudo rsync -a /tmp/aws-exam-deploy/api/dist/ /var/www/aws-exam-site/api/dist/
+            sudo cp /tmp/aws-exam-deploy/api/package.json /var/www/aws-exam-site/api/package.json
+            sudo rsync -a --delete /tmp/aws-exam-deploy/web/dist/ /var/www/aws-exam-site/web/dist/
+            cd /var/www/aws-exam-site/api && sudo npm install --omit=dev --silent
+            sudo chown -R aws-exam:aws-exam /var/www/aws-exam-site
+            sudo rm -rf /tmp/aws-exam-deploy
+            sudo systemctl restart aws-exam
+            sleep 2 && sudo systemctl is-active --quiet aws-exam && echo "aws-exam service OK"
+          '
+        echo "==> Deploy complete: https://aws.cyohei.net"
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: 'CLOUD_LOGGING_ONLY'

@@ -80,6 +80,27 @@ export const useExamStore = defineStore('exam', () => {
     answers.value.set(questionId, { ...existing, checkResult: result, checked: true })
   }
 
+  // Local (offline) answer check — no backend call
+  function checkQuestion(questionId: string, selected: string[]): void {
+    const q = questions.value.find((q) => q.id === questionId)
+    if (!q) return
+    const sortedSelected = [...selected].sort()
+    const sortedCorrect = [...q.correct_answers].sort()
+    const correct =
+      sortedSelected.length === sortedCorrect.length &&
+      sortedSelected.every((ans, i) => ans === sortedCorrect[i])
+    setCheckResult(questionId, {
+      correct,
+      correct_answers: q.correct_answers,
+      analysis: q.translation?.analysis ?? '',
+    })
+  }
+
+  function updateTranslations(qs: Question[]) {
+    questions.value = qs
+    // Preserve currentIndex and answers — only swap translated text
+  }
+
   function goTo(index: number) {
     if (index >= 0 && index < questions.value.length) {
       currentIndex.value = index
@@ -124,8 +145,10 @@ export const useExamStore = defineStore('exam', () => {
     unansweredCount,
     isFinished,
     initExam,
+    updateTranslations,
     selectOption,
     setCheckResult,
+    checkQuestion,
     goTo,
     next,
     prev,

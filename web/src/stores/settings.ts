@@ -4,7 +4,7 @@ import { ref } from 'vue'
 export type Lang = 'ja' | 'en' | 'zh'
 
 export const useSettingsStore = defineStore('settings', () => {
-  const lang = ref<Lang>((localStorage.getItem('lang') as Lang) ?? 'ja')
+  const lang = ref<Lang>((localStorage.getItem('lang') as Lang) ?? 'en')
 
   function setLang(newLang: Lang) {
     lang.value = newLang

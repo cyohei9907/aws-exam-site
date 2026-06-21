@@ -3,13 +3,15 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchCerts, type CertInfo } from '@/api/client'
 import { useSettingsStore } from '@/stores/settings'
+import { usePageSEO } from '@/composables/usePageSEO'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   BookOpen, Award, Globe, Zap, CheckCircle, Lock, Download,
-  ChevronRight, BarChart3, Clock, Smartphone,
+  ChevronRight, BarChart3, Smartphone,
 } from 'lucide-vue-next'
+import CertBadge from '@/components/CertBadge.vue'
 
 const router = useRouter()
 const settings = useSettingsStore()
@@ -59,7 +61,8 @@ const t = computed(() => ({
 }))
 
 // ─── Static data ─────────────────────────────────────────────────────────────
-const CERT_ORDER = [
+// Preferred display order. Certs not returned by the API are silently skipped.
+const PREFERRED_ORDER = [
   'saa-c03', 'sap-c02', 'clf-c02', 'dva-c02', 'soa-c02', 'dop-c02',
   'aif-c01', 'ans-c01', 'das-c01', 'dea-c01', 'mla-c01', 'mls-c01', 'scs-c02',
 ]
@@ -96,16 +99,44 @@ const LEVEL_COLORS: Record<string, string> = {
 }
 
 const FREE_CHAPTERS: Record<string, number[]> = {
-  'saa-c03': [1,2,3,4,5,6,7,8],
-  'sap-c02': [1,2,3],
+  'saa-c03': [1, 2, 3, 4, 5],
+  'sap-c02': [1, 2, 3],
+  'clf-c02': [1, 2, 3], 'dva-c02': [1, 2, 3], 'dop-c02': [1, 2, 3], 'aif-c01': [1, 2, 3],
+  'soa-c02': [], 'ans-c01': [], 'dea-c01': [], 'mla-c01': [],
+  'mls-c01': [], 'das-c01': [], 'scs-c02': [],
+}
+
+usePageSEO(() => {
+  const l = lang.value
+  return {
+    title: l === 'en'
+      ? 'Free AWS Certification Practice | 7,000+ Questions · 11 Exam Types'
+      : l === 'zh'
+      ? 'AWS 认证考试免费练习题库 | 7,000+题 · 11种认证'
+      : 'AWS認定試験 無料練習問題集 | SAA・CLF・DVAなど11種類対応',
+    description: l === 'en'
+      ? 'Practice for AWS certifications with 7,000+ questions across 11 exam types (SAA-C03, CLF-C02, DVA-C02 and more). Free chapters available. Japanese, English, and Chinese supported.'
+      : l === 'zh'
+      ? 'AWS认证练习题库，覆盖SAA-C03、CLF-C02、DVA-C02等11种认证，共7,000+题，支持日语、英语、中文，含免费章节，iOS应用解锁全题+AI解析。'
+      : 'AWS認定試験11種の練習問題集。SAA-C03・CLF-C02・DVA-C02など7,000問以上。無料チャプターをブラウザで今すぐ解答・解説付き。iOSアプリで全問+AI解説。',
+  }
+})
+function isAppOnly(certId: string): boolean {
+  return (FREE_CHAPTERS[certId] ?? []).length === 0
 }
 function freeChapterCount(certId: string): number {
-  return (FREE_CHAPTERS[certId] ?? [1]).length
+  return (FREE_CHAPTERS[certId] ?? []).length
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────
 const certs = ref<CertInfo[]>([])
 const loadingCerts = ref(true)
+
+// Only show certs that actually have data in the API, in preferred order
+const orderedCerts = computed(() => {
+  const available = new Set(certs.value.map(c => c.cert_id))
+  return PREFERRED_ORDER.filter(id => available.has(id))
+})
 
 function certTotal(certId: string): number | null {
   return certs.value.find(c => c.cert_id === certId)?.total ?? null
@@ -113,6 +144,17 @@ function certTotal(certId: string): number | null {
 
 function scrollToCerts() {
   document.getElementById('certs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// App-only download modal
+const downloadModalCert = ref<string | null>(null)
+
+function handleCertClick(certId: string) {
+  if (isAppOnly(certId)) {
+    downloadModalCert.value = certId
+  } else {
+    router.push('/cert/' + certId)
+  }
 }
 
 onMounted(async () => {
@@ -155,7 +197,7 @@ onMounted(async () => {
           variant="outline"
           class="border-white/40 text-white bg-white/10 hover:bg-white/20 font-semibold px-8 text-base h-12"
           as="a"
-          href="https://apps.apple.com/app/id[placeholder]"
+          href="https://apps.apple.com/app/id6773379862"
           target="_blank"
         >
           <Smartphone :size="16" class="mr-2" />{{ t.hero_app }}
@@ -172,7 +214,7 @@ onMounted(async () => {
         <div class="text-sm text-slate-500 mt-1">{{ t.stats_q }}</div>
       </div>
       <div>
-        <div class="text-3xl font-extrabold text-slate-900">13</div>
+        <div class="text-3xl font-extrabold text-slate-900">{{ orderedCerts.length }}</div>
         <div class="text-sm text-slate-500 mt-1">{{ t.stats_cert }}</div>
       </div>
       <div>
@@ -254,30 +296,45 @@ onMounted(async () => {
 
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
-          v-for="certId in CERT_ORDER"
+          v-for="certId in orderedCerts"
           :key="certId"
-          class="group bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-md hover:border-blue-200 cursor-pointer transition-all"
-          @click="router.push('/cert/' + certId)"
+          class="group bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-md cursor-pointer transition-all flex flex-col gap-3"
+          :class="isAppOnly(certId) ? 'hover:border-slate-200' : 'hover:border-blue-200'"
+          @click="handleCertClick(certId)"
         >
-          <div class="flex items-start justify-between gap-2 mb-3">
-            <span class="text-xs font-mono font-bold text-slate-400 tracking-widest uppercase">
-              {{ certId.toUpperCase() }}
-            </span>
-            <span :class="['text-xs font-semibold px-2 py-0.5 rounded-full border', LEVEL_COLORS[CERT_LEVELS[certId]]]">
-              {{ CERT_LEVELS[certId] }}
-            </span>
+          <!-- Badge + cert ID row -->
+          <div class="flex items-center gap-3">
+            <CertBadge
+              :cert-id="certId"
+              :level="(CERT_LEVELS[certId] as any)"
+              :size="56"
+              class="shrink-0 drop-shadow"
+            />
+            <div class="min-w-0">
+              <span class="text-[11px] font-mono font-bold text-slate-400 tracking-widest uppercase block">
+                {{ certId.toUpperCase() }}
+              </span>
+              <div class="font-semibold text-slate-800 leading-snug group-hover:text-blue-700 transition-colors text-sm mt-0.5">
+                {{ CERT_DISPLAY[certId]?.[lang] ?? CERT_DISPLAY[certId]?.en }}
+              </div>
+            </div>
           </div>
-          <div class="font-semibold text-slate-800 leading-snug mb-3 group-hover:text-blue-700 transition-colors">
-            {{ CERT_DISPLAY[certId]?.[lang] ?? CERT_DISPLAY[certId]?.en }}
-          </div>
-          <div class="flex items-center justify-between text-sm">
+
+          <!-- Stats row -->
+          <div class="flex items-center justify-between text-xs border-t border-slate-50 pt-2">
             <span class="text-slate-400">
-              {{ certTotal(certId) !== null ? certTotal(certId)?.toLocaleString() : '—' }}
-              {{ t.cert_q }}
+              {{ certTotal(certId)?.toLocaleString() ?? '—' }} {{ t.cert_q }}
             </span>
-            <span class="flex items-center gap-1 text-emerald-600 font-medium">
-              <CheckCircle :size="13" />
+            <span
+              v-if="freeChapterCount(certId) > 0"
+              class="flex items-center gap-1 text-emerald-600 font-semibold"
+            >
+              <CheckCircle :size="12" />
               {{ freeChapterCount(certId) }} {{ t.cert_free }}
+            </span>
+            <span v-else class="flex items-center gap-1 text-slate-400 font-medium">
+              <Lock :size="12" />
+              {{ t.locked_label }}
             </span>
           </div>
         </div>
@@ -286,11 +343,11 @@ onMounted(async () => {
   </section>
 
   <!-- ═══ APP PROMO ══════════════════════════════════════════════════════════ -->
-  <section class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white py-24 px-6">
-    <div class="max-w-5xl mx-auto flex flex-col lg:flex-row items-center gap-14">
+  <section class="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white py-20 px-6 overflow-hidden">
+    <div class="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
 
       <!-- Left: text -->
-      <div class="flex-1">
+      <div class="flex-1 min-w-0">
         <span class="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 text-sm px-3 py-1 rounded-full mb-6">
           <Zap :size="13" /> iOS App
         </span>
@@ -301,24 +358,20 @@ onMounted(async () => {
           {{ t.app_sub }}
         </p>
 
-        <!-- Feature list -->
         <ul class="space-y-3 mb-10">
           <li v-for="f in [t.app_f1, t.app_f2, t.app_f3, t.app_f4, t.app_f5, t.app_f6]"
-            :key="f"
-            class="flex items-center gap-2.5 text-sm text-slate-200"
+            :key="f" class="flex items-center gap-2.5 text-sm text-slate-200"
           >
             <CheckCircle :size="16" class="text-emerald-400 shrink-0" />
             {{ f }}
           </li>
         </ul>
 
-        <!-- App Store button -->
         <a
-          href="https://apps.apple.com/app/id[placeholder]"
+          href="https://apps.apple.com/app/id6773379862"
           target="_blank"
           class="inline-flex items-center gap-3 bg-white text-slate-900 font-semibold px-6 py-3.5 rounded-xl hover:bg-slate-100 transition-colors shadow-lg"
         >
-          <!-- Apple logo SVG -->
           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
             <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
           </svg>
@@ -329,62 +382,99 @@ onMounted(async () => {
         </a>
       </div>
 
-      <!-- Right: mock phone frame -->
-      <div class="flex-shrink-0 w-60">
-        <div class="relative mx-auto w-56 bg-slate-700 rounded-[2.5rem] p-2 shadow-2xl border-4 border-slate-600">
-          <div class="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-800 rounded-full z-10" />
-          <div class="bg-slate-900 rounded-[2rem] overflow-hidden aspect-[9/19]">
-            <!-- Screen content mockup -->
-            <div class="h-full flex flex-col">
-              <div class="bg-slate-800 px-4 pt-8 pb-4">
-                <div class="text-white text-xs font-bold">AWS 認定問題集</div>
-                <div class="text-slate-400 text-[10px] mt-0.5">SAA-C03 · 第3章</div>
-              </div>
-              <div class="flex-1 bg-slate-900 px-3 py-3 space-y-2">
-                <div class="bg-slate-800 rounded-lg p-2">
-                  <div class="h-2 bg-slate-600 rounded w-full mb-1.5" />
-                  <div class="h-2 bg-slate-600 rounded w-4/5" />
-                </div>
-                <div v-for="opt in ['A','B','C','D']" :key="opt"
-                  :class="['rounded-lg p-2 flex items-center gap-2',
-                    opt === 'B' ? 'bg-emerald-900/40 border border-emerald-500/40' : 'bg-slate-800']"
-                >
-                  <div :class="['w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold',
-                    opt === 'B' ? 'bg-emerald-500 text-white' : 'bg-slate-600 text-slate-300']">
-                    {{ opt }}
-                  </div>
-                  <div :class="['h-1.5 rounded flex-1', opt === 'B' ? 'bg-emerald-400/60' : 'bg-slate-600']" />
-                </div>
-                <div class="bg-amber-900/30 border border-amber-500/30 rounded-lg p-2 mt-1">
-                  <div class="text-amber-400 text-[9px] font-bold mb-1">解説</div>
-                  <div class="h-1.5 bg-slate-600 rounded w-full mb-1" />
-                  <div class="h-1.5 bg-slate-600 rounded w-3/4" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- Right: real app screenshots -->
+      <div class="flex gap-3 overflow-x-auto pb-2 shrink-0 snap-x snap-mandatory">
+        <img
+          v-for="n in [1,2,3,4]"
+          :key="n"
+          :src="`/screenshots/screen${n}.png`"
+          :alt="`App screenshot ${n}`"
+          class="h-72 sm:h-80 w-auto rounded-2xl shadow-2xl object-cover shrink-0 snap-start select-none"
+          draggable="false"
+        />
       </div>
     </div>
   </section>
 
-  <!-- ═══ FOOTER CTA ══════════════════════════════════════════════════════════ -->
-  <section class="bg-white py-16 px-6 text-center border-t border-slate-100">
-    <div class="max-w-xl mx-auto">
-      <Clock :size="36" class="text-slate-300 mx-auto mb-4" />
-      <h3 class="text-xl font-bold text-slate-800 mb-2">
-        {{ lang === 'ja' ? '今すぐ練習を始めよう' : lang === 'zh' ? '立即开始练习' : 'Start practicing now' }}
-      </h3>
-      <p class="text-slate-500 text-sm mb-6">
-        {{ lang === 'ja' ? '登録不要・無料でブラウザからすぐ始められます' : lang === 'zh' ? '无需注册，免费在浏览器中即刻开始' : 'No registration required. Free, right in your browser.' }}
-      </p>
-      <Button
-        size="lg"
-        class="bg-[#FF9900] hover:bg-[#e88a00] text-slate-900 font-bold px-10"
-        @click="scrollToCerts"
+  <!-- ═══ APP-ONLY DOWNLOAD MODAL ══════════════════════════════════════════════ -->
+  <Teleport to="body">
+    <Transition name="modal">
+      <div
+        v-if="downloadModalCert"
+        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+        @click.self="downloadModalCert = null"
       >
-        {{ t.hero_cta }}
-      </Button>
+        <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl">
+          <!-- Cert identity -->
+          <div class="flex items-center gap-4 mb-5">
+            <CertBadge
+              :cert-id="downloadModalCert"
+              :level="(CERT_LEVELS[downloadModalCert] as any)"
+              :size="60"
+              class="shrink-0"
+            />
+            <div>
+              <p class="text-xs font-mono text-slate-400 tracking-widest uppercase">
+                {{ downloadModalCert.toUpperCase() }}
+              </p>
+              <p class="font-bold text-slate-900 text-sm leading-snug mt-0.5">
+                {{ CERT_DISPLAY[downloadModalCert]?.[lang] ?? CERT_DISPLAY[downloadModalCert]?.en }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Lock message -->
+          <div class="flex items-start gap-3 bg-slate-50 rounded-xl p-4 mb-6">
+            <Lock :size="18" class="text-slate-400 shrink-0 mt-0.5" />
+            <div>
+              <p class="font-semibold text-slate-800 text-sm">
+                {{ lang === 'ja' ? 'iOSアプリ限定' : lang === 'zh' ? '仅限 iOS 应用' : 'iOS App Only' }}
+              </p>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                {{ lang === 'ja'
+                  ? 'この認定の問題数が少ないため、ウェブでの無料公開は行っていません。iOSアプリからすべての問題を練習できます。'
+                  : lang === 'zh'
+                  ? '该认证题目较少，不在网页端免费开放。请下载 iOS 应用练习全部题目。'
+                  : 'This certification has fewer questions and is not available for free on the web. Download the iOS app to practice all questions.' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- App Store button -->
+          <a
+            href="https://apps.apple.com/app/id6773379862"
+            target="_blank"
+            class="flex items-center justify-center gap-3 bg-slate-900 text-white font-semibold px-5 py-3 rounded-xl hover:bg-slate-800 transition-colors w-full mb-3"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+            </svg>
+            {{ lang === 'ja' ? 'App Store からダウンロード' : lang === 'zh' ? '从 App Store 下载' : 'Download on the App Store' }}
+          </a>
+          <button
+            @click="downloadModalCert = null"
+            class="w-full text-sm text-slate-400 hover:text-slate-600 py-2 transition-colors"
+          >
+            {{ lang === 'ja' ? '閉じる' : lang === 'zh' ? '关闭' : 'Close' }}
+          </button>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- ═══ FOOTER ═══════════════════════════════════════════════════════════════ -->
+  <footer class="bg-slate-900 border-t border-slate-800 py-10 px-6">
+    <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2.5">
+        <img src="/app-icon.png" class="w-7 h-7 rounded-lg" alt="" />
+        <span class="text-white font-semibold text-sm">AWS 認定試験 練習</span>
+      </div>
+      <p class="text-slate-500 text-sm">© 2026 <a href="https://cyohei.net" target="_blank" class="hover:text-slate-300 transition-colors">cyohei.net</a></p>
     </div>
-  </section>
+  </footer>
 </template>
+
+<style scoped>
+.modal-enter-active, .modal-leave-active { transition: opacity 0.18s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
+</style>

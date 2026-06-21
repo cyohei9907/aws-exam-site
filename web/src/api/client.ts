@@ -28,6 +28,7 @@ export interface Question {
   num_options: number
   difficulty: string
   chapter: number
+  correct_answers: string[]
   translation: QuestionTranslation
 }
 
@@ -100,30 +101,3 @@ export async function fetchChapter(
   return handleResponse<Question[]>(res)
 }
 
-/**
- * POST /api/certs/{certId}/chapters/{chapterId}/check?lang={lang}
- * Checks the user's answer for a given question.
- */
-export async function checkAnswer(
-  certId: string,
-  chapterId: number,
-  questionId: string,
-  selected: string[],
-  lang: string,
-): Promise<CheckResult> {
-  const res = await fetch(
-    `${BASE_URL}/certs/${encodeURIComponent(certId)}/chapters/${chapterId}/check?lang=${encodeURIComponent(lang)}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        question_id: questionId,
-        selected,
-      }),
-    },
-  )
-
-  return handleResponse<CheckResult>(res)
-}

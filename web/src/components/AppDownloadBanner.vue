@@ -42,7 +42,7 @@ const text = computed(() => ({
         <p class="text-blue-100 text-sm mt-1 leading-relaxed">{{ text?.body }}</p>
       </div>
       <a
-        href="https://apps.apple.com/app/id000000000"
+        href="https://apps.apple.com/app/id6773379862"
         target="_blank"
         rel="noopener noreferrer"
         class="inline-flex items-center gap-2 bg-white text-blue-900 font-semibold px-5 py-2.5 rounded-lg hover:bg-blue-50 transition-colors mt-3 sm:mt-0 shrink-0"

@@ -1,0 +1,29 @@
+[Unit]
+Description=AWS Exam Practice Site (Fastify + Vue SPA)
+Documentation=https://github.com/cyohei9907/aws-exam-site
+After=network.target
+
+[Service]
+Type=simple
+User=aws-exam
+Group=aws-exam
+WorkingDirectory=/var/www/aws-exam-site/api
+
+Environment="NODE_ENV=production"
+Environment="PORT=3001"
+Environment="HOST=127.0.0.1"
+
+ExecStart=/usr/bin/node /var/www/aws-exam-site/api/dist/index.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/aws-exam-site/app.log
+StandardError=append:/var/log/aws-exam-site/app.err.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/aws-exam-site
+
+[Install]
+WantedBy=multi-user.target
