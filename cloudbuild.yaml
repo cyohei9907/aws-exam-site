@@ -4,30 +4,23 @@
 # SAFE: only restarts aws-exam.service, never touches acggs service
 
 steps:
-  # ─── Build API (TypeScript → Node.js) ───────────────────────────────────────
+  # ─── Install deps + Build API + Build Web ───────────────────────────────────
   - name: 'node:20'
-    id: 'build-api'
-    dir: 'api'
+    id: 'build'
     entrypoint: 'bash'
-    env: ['NODE_ENV=development']
     args:
       - '-c'
-      - 'npm install && npm run build'
-
-  # ─── Build Web (Vue 3 → static files) ───────────────────────────────────────
-  - name: 'node:20'
-    id: 'build-web'
-    dir: 'web'
-    entrypoint: 'bash'
-    env: ['NODE_ENV=development']
-    args:
-      - '-c'
-      - 'npm install && npm run build'
+      - |
+        set -euo pipefail
+        npm install -g pnpm@latest
+        pnpm install --frozen-lockfile
+        pnpm --filter @aws-exam-site/api run build
+        pnpm --filter @aws-exam-site/web run build
 
   # ─── Deploy to Compute Engine VM ────────────────────────────────────────────
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy'
-    waitFor: ['build-api', 'build-web']
+    waitFor: ['build']
     entrypoint: 'bash'
     args:
       - '-c'
@@ -35,7 +28,6 @@ steps:
         set -euo pipefail
         ZONE=asia-northeast1-a
         INSTANCE=acggs-prod
-        REMOTE=/var/www/aws-exam-site
 
         # Suppress SSH host key prompts (fresh container, no known_hosts)
         mkdir -p ~/.ssh
