@@ -16,7 +16,7 @@ const start = async () => {
     origin: ['http://localhost:5173', 'http://localhost:4173'],
   });
 
-  // Sitemap + robots.txt (before static, so /robots.txt isn't caught by static)
+  // Sitemap (before static)
   await app.register(sitemapRoutes);
 
   // API routes
