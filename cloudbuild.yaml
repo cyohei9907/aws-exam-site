@@ -41,24 +41,24 @@ steps:
         chmod 600 ~/.ssh/config
 
         echo "==> Preparing staging directory on VM..."
-        gcloud compute ssh "$INSTANCE" --zone="$ZONE" --project="$PROJECT_ID" \
+        gcloud compute ssh "$$INSTANCE" --zone="$$ZONE" --project="$PROJECT_ID" \
           --command='mkdir -p /tmp/aws-exam-deploy/api/dist /tmp/aws-exam-deploy/web/dist'
 
         echo "==> Uploading API build..."
         gcloud compute scp --recurse api/dist/ \
-          "$INSTANCE:/tmp/aws-exam-deploy/api/dist/" \
-          --zone="$ZONE" --project="$PROJECT_ID"
+          "$$INSTANCE:/tmp/aws-exam-deploy/api/dist/" \
+          --zone="$$ZONE" --project="$PROJECT_ID"
         gcloud compute scp api/package.json \
-          "$INSTANCE:/tmp/aws-exam-deploy/api/package.json" \
-          --zone="$ZONE" --project="$PROJECT_ID"
+          "$$INSTANCE:/tmp/aws-exam-deploy/api/package.json" \
+          --zone="$$ZONE" --project="$PROJECT_ID"
 
         echo "==> Uploading web build..."
         gcloud compute scp --recurse web/dist/ \
-          "$INSTANCE:/tmp/aws-exam-deploy/web/dist/" \
-          --zone="$ZONE" --project="$PROJECT_ID"
+          "$$INSTANCE:/tmp/aws-exam-deploy/web/dist/" \
+          --zone="$$ZONE" --project="$PROJECT_ID"
 
         echo "==> Running deploy on VM (only aws-exam-site, acggs is untouched)..."
-        gcloud compute ssh "$INSTANCE" --zone="$ZONE" --project="$PROJECT_ID" \
+        gcloud compute ssh "$$INSTANCE" --zone="$$ZONE" --project="$PROJECT_ID" \
           --command='
             set -e
             sudo rsync -a /tmp/aws-exam-deploy/api/dist/ /var/www/aws-exam-site/api/dist/
