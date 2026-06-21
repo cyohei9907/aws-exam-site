@@ -19,8 +19,13 @@ const FREE_CHAPTERS: Record<string, number[]> = {
   'aif-c01': [1, 2, 3],
 };
 
-function xmlEsc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 function langUrl(enPath: string, lang: string): string {
@@ -28,25 +33,21 @@ function langUrl(enPath: string, lang: string): string {
   return `${BASE_URL}/${lang}${enPath === '/' ? '/' : enPath}`;
 }
 
-// Build one <url> entry with hreflang links for all three language variants
 function urlEntry(enPath: string, changefreq: string, priority: string): string {
-  const loc = xmlEsc(langUrl(enPath, 'en'));
-  const hreflang = LANGS.map((l) =>
-    `    <xhtml:link rel="alternate" hreflang="${l}" href="${xmlEsc(langUrl(enPath, l))}" />`,
-  ).concat([
-    `    <xhtml:link rel="alternate" hreflang="x-default" href="${xmlEsc(langUrl(enPath, 'en'))}" />`,
-  ]).join('\n');
-
-  return `  <url>\n    <loc>${loc}</loc>\n${hreflang}\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+  const lines: string[] = [];
+  lines.push('  <url>');
+  lines.push(`    <loc>${esc(langUrl(enPath, 'en'))}</loc>`);
+  for (const lang of LANGS) {
+    lines.push(`    <xhtml:link rel="alternate" hreflang="${lang}" href="${esc(langUrl(enPath, lang))}"/>`);
+  }
+  lines.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${esc(langUrl(enPath, 'en'))}"/>`);
+  lines.push(`    <changefreq>${changefreq}</changefreq>`);
+  lines.push(`    <priority>${priority}</priority>`);
+  lines.push('  </url>');
+  return lines.join('\n');
 }
 
 const sitemapPlugin: FastifyPluginAsync = async (app) => {
-  app.get('/robots.txt', async (_req, reply) => {
-    reply.type('text/plain').send(
-      `User-agent: *\nAllow: /\nSitemap: ${BASE_URL}/sitemap.xml\n`,
-    );
-  });
-
   app.get('/sitemap.xml', async (_req, reply) => {
     const entries: string[] = [urlEntry('/', 'weekly', '1.0')];
 
@@ -57,13 +58,18 @@ const sitemapPlugin: FastifyPluginAsync = async (app) => {
       }
     }
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${entries.join('\n')}
-</urlset>`;
+    const xml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<urlset',
+      '  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+      '  xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+      entries.join('\n'),
+      '</urlset>',
+    ].join('\n');
 
-    reply.type('application/xml').send(xml);
+    reply
+      .header('Content-Type', 'application/xml; charset=utf-8')
+      .send(xml);
   });
 };
 

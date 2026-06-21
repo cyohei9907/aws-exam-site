@@ -12,7 +12,7 @@ steps:
       - '-c'
       - |
         set -euo pipefail
-        npm install -g pnpm@latest
+        npm install -g pnpm@9
         pnpm install --frozen-lockfile
         pnpm --filter @aws-exam-site/api run build
         pnpm --filter @aws-exam-site/web run build
