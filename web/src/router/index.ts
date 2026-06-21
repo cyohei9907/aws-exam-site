@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, RouterView } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 import CertView from '@/views/CertView.vue'
 import PracticeView from '@/views/PracticeView.vue'
@@ -11,7 +11,7 @@ const router = createRouter({
     // Language-prefixed routes (/ja/... and /zh/...)
     {
       path: '/:lang(ja|zh)',
-      component: { template: '<RouterView />' },
+      component: RouterView,
       children: [
         { path: '', component: HomeView },
         { path: 'cert/:certId', component: CertView },
