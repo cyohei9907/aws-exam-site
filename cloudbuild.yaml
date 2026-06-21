@@ -36,31 +36,33 @@ steps:
 
         echo "==> Preparing staging directory on VM..."
         gcloud compute ssh "$$INSTANCE" --zone="$$ZONE" --project="$PROJECT_ID" \
-          --command='mkdir -p /tmp/aws-exam-deploy/api/dist /tmp/aws-exam-deploy/web/dist'
+          --command='rm -rf /tmp/aws-exam-deploy && mkdir -p /tmp/aws-exam-deploy'
 
         echo "==> Uploading API build..."
-        gcloud compute scp --recurse api/dist/ \
-          "$$INSTANCE:/tmp/aws-exam-deploy/api/dist/" \
+        # SCP copies 'api/dist' directory INTO /tmp/aws-exam-deploy/, creating /tmp/aws-exam-deploy/dist/
+        # (dest must NOT pre-exist as a dir to avoid double-nesting)
+        gcloud compute scp --recurse api/dist \
+          "$$INSTANCE:/tmp/aws-exam-deploy/api-dist" \
           --zone="$$ZONE" --project="$PROJECT_ID"
         gcloud compute scp api/package.json \
-          "$$INSTANCE:/tmp/aws-exam-deploy/api/package.json" \
+          "$$INSTANCE:/tmp/aws-exam-deploy/api-package.json" \
           --zone="$$ZONE" --project="$PROJECT_ID"
 
         echo "==> Uploading web build..."
-        gcloud compute scp --recurse web/dist/ \
-          "$$INSTANCE:/tmp/aws-exam-deploy/web/dist/" \
+        gcloud compute scp --recurse web/dist \
+          "$$INSTANCE:/tmp/aws-exam-deploy/web-dist" \
           --zone="$$ZONE" --project="$PROJECT_ID"
 
         echo "==> Running deploy on VM (only aws-exam-site, acggs is untouched)..."
         gcloud compute ssh "$$INSTANCE" --zone="$$ZONE" --project="$PROJECT_ID" \
           --command='
             set -e
-            sudo rsync -a /tmp/aws-exam-deploy/api/dist/ /var/www/aws-exam-site/api/dist/
-            sudo cp /tmp/aws-exam-deploy/api/package.json /var/www/aws-exam-site/api/package.json
-            sudo rsync -a --delete /tmp/aws-exam-deploy/web/dist/ /var/www/aws-exam-site/web/dist/
+            sudo rsync -a /tmp/aws-exam-deploy/api-dist/ /var/www/aws-exam-site/api/dist/
+            sudo cp /tmp/aws-exam-deploy/api-package.json /var/www/aws-exam-site/api/package.json
+            sudo rsync -a --delete /tmp/aws-exam-deploy/web-dist/ /var/www/aws-exam-site/web/dist/
             cd /var/www/aws-exam-site/api && sudo npm install --omit=dev --silent
             sudo chown -R aws-exam:aws-exam /var/www/aws-exam-site
-            sudo rm -rf /tmp/aws-exam-deploy
+            rm -rf /tmp/aws-exam-deploy
             sudo systemctl restart aws-exam
             sleep 2 && sudo systemctl is-active --quiet aws-exam && echo "aws-exam service OK"
           '
