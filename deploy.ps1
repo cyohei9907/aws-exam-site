@@ -28,10 +28,16 @@ function SCP([string]$src, [string]$dst) {
 
 # ─── Build locally ────────────────────────────────────────────────────────────
 Write-Host "`n==> Building API..." -ForegroundColor Cyan
-Push-Location "$ROOT\api"; npm run build; if ($LASTEXITCODE -ne 0) { throw "API build failed" }; Pop-Location
+Push-Location "$ROOT\api"
+cmd /c "npm run build"
+if ($LASTEXITCODE -ne 0) { Pop-Location; throw "API build failed" }
+Pop-Location
 
 Write-Host "==> Building web..." -ForegroundColor Cyan
-Push-Location "$ROOT\web"; npm run build; if ($LASTEXITCODE -ne 0) { throw "Web build failed" }; Pop-Location
+Push-Location "$ROOT\web"
+cmd /c "npm run build"
+if ($LASTEXITCODE -ne 0) { Pop-Location; throw "Web build failed" }
+Pop-Location
 
 # ─── First-time server setup ──────────────────────────────────────────────────
 if ($Setup) {

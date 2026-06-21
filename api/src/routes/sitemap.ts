@@ -25,7 +25,7 @@ function xmlEsc(s: string): string {
 
 function langUrl(enPath: string, lang: string): string {
   if (lang === 'en') return `${BASE_URL}${enPath}`;
-  return `${BASE_URL}/${lang}${enPath === '/' ? '' : enPath}`;
+  return `${BASE_URL}/${lang}${enPath === '/' ? '/' : enPath}`;
 }
 
 // Build one <url> entry with hreflang links for all three language variants

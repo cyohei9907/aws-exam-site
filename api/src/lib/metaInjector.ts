@@ -178,8 +178,8 @@ export function injectMeta(html: string, meta: PageMeta): string {
 
   const hreflangLinks = [
     `  <link rel="alternate" hreflang="en" href="${BASE_URL}${meta.enPath}" />`,
-    `  <link rel="alternate" hreflang="ja" href="${BASE_URL}/ja${meta.enPath === '/' ? '' : meta.enPath}" />`,
-    `  <link rel="alternate" hreflang="zh" href="${BASE_URL}/zh${meta.enPath === '/' ? '' : meta.enPath}" />`,
+    `  <link rel="alternate" hreflang="ja" href="${BASE_URL}/ja${meta.enPath === '/' ? '/' : meta.enPath}" />`,
+    `  <link rel="alternate" hreflang="zh" href="${BASE_URL}/zh${meta.enPath === '/' ? '/' : meta.enPath}" />`,
     `  <link rel="alternate" hreflang="x-default" href="${BASE_URL}${meta.enPath}" />`,
     `  <link rel="canonical" href="${esc(meta.canonical)}" />`,
   ].join('\n');
