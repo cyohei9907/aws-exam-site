@@ -9,18 +9,20 @@ steps:
     id: 'build-api'
     dir: 'api'
     entrypoint: 'bash'
+    env: ['NODE_ENV=development']
     args:
       - '-c'
-      - 'npm ci && npm run build'
+      - 'npm install && npm run build'
 
   # ─── Build Web (Vue 3 → static files) ───────────────────────────────────────
   - name: 'node:20'
     id: 'build-web'
     dir: 'web'
     entrypoint: 'bash'
+    env: ['NODE_ENV=development']
     args:
       - '-c'
-      - 'npm ci && npm run build'
+      - 'npm install && npm run build'
 
   # ─── Deploy to Compute Engine VM ────────────────────────────────────────────
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
