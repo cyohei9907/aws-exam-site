@@ -193,3 +193,12 @@ export function injectMeta(html: string, meta: PageMeta): string {
     .replace(/(<meta property="og:description"\s+content=")[^"]*"/, `$1${d}"`)
     .replace('</head>', `${hreflangLinks}\n</head>`);
 }
+
+// Inject first N question stems as hidden SSR content for search engine indexing.
+// Placed before </body> so Vue SPA does not interfere.
+export function injectQuestions(html: string, stems: string[]): string {
+  if (!stems.length) return html;
+  const items = stems.map((s) => `    <li>${esc(s)}</li>`).join('\n');
+  const section = `<section id="seo-q" style="display:none" aria-hidden="true">\n  <ol>\n${items}\n  </ol>\n</section>`;
+  return html.replace('</body>', `${section}\n</body>`);
+}
