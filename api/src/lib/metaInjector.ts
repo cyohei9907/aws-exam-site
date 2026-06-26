@@ -144,6 +144,32 @@ function chapterMeta(certId: string, chapter: string, lang: Lang, enPath: string
   };
 }
 
+function questionMeta(certId: string, chapter: string, position: number, lang: Lang, enPath: string): PageMeta {
+  const data = CERT_DATA[certId];
+  const id = certId.toUpperCase();
+  const canonical = lang === 'en'
+    ? `${BASE_URL}/cert/${certId}/chapter/${chapter}/question/${position}`
+    : `${BASE_URL}/${lang}/cert/${certId}/chapter/${chapter}/question/${position}`;
+  if (lang === 'ja') return {
+    lang, canonical, enPath, ogType: 'article',
+    title: `Q${position} | AWS ${id} 第${chapter}章 練習問題 — ${data.ja}`,
+    description: `AWS ${id}（${data.ja}）第${chapter}章 Q${position}の練習問題。解説付きで本番形式で学習。`,
+    keywords: `AWS ${id},${certId},第${chapter}章,Q${position},練習問題,AWS試験対策,無料,2025年`,
+  };
+  if (lang === 'zh') return {
+    lang, canonical, enPath, ogType: 'article',
+    title: `Q${position} | AWS ${id} 第${chapter}章 练习题 — ${data.zh}`,
+    description: `AWS ${id}（${data.zh}）第${chapter}章 Q${position}练习题，含详细解析。`,
+    keywords: `AWS ${id},${certId},第${chapter}章,Q${position},练习题,AWS备考,免费,2025`,
+  };
+  return {
+    lang, canonical, enPath, ogType: 'article',
+    title: `Q${position} | AWS ${id} Chapter ${chapter} Practice — ${data.en}`,
+    description: `AWS ${id} (${data.en}) Chapter ${chapter} Question ${position} with detailed explanation. Free AWS exam prep 2025.`,
+    keywords: `AWS ${id} chapter ${chapter} question ${position}, ${certId} practice test free 2025, ${certId} exam question, ${data.en}`,
+  };
+}
+
 // ─── URL parser ───────────────────────────────────────────────────────────────
 
 function parsePath(urlPath: string): { lang: Lang; rest: string } {
@@ -170,6 +196,14 @@ export function getMetaForUrl(urlPath: string): PageMeta {
     const certId = chapterMatch[1];
     const chapter = chapterMatch[2];
     if (CERT_DATA[certId]) return chapterMeta(certId, chapter, lang, enPath);
+  }
+
+  const questionMatch = rest.match(/^\/cert\/([a-z0-9-]+)\/chapter\/(\d+)\/question\/(\d+)$/);
+  if (questionMatch) {
+    const certId = questionMatch[1];
+    const chapter = questionMatch[2];
+    const position = parseInt(questionMatch[3], 10);
+    if (CERT_DATA[certId]) return questionMeta(certId, chapter, position, lang, enPath);
   }
 
   return homeMeta(lang, enPath);
@@ -201,6 +235,7 @@ export function injectMeta(html: string, meta: PageMeta): string {
     .replace(/(<meta name="keywords"\s+content=")[^"]*"/, `$1${k}"`)
     .replace(/(<meta property="og:title"\s+content=")[^"]*"/, `$1${t}"`)
     .replace(/(<meta property="og:description"\s+content=")[^"]*"/, `$1${d}"`)
+    .replace(/(<meta property="og:url"\s+content=")[^"]*"/, `$1${esc(meta.canonical)}"`)
     .replace('</head>', `${hreflangLinks}\n</head>`);
 }
 
@@ -225,6 +260,7 @@ export function injectQuestions(
     : lang === 'zh' ? `以下是 AWS ${id}（${data?.zh ?? id}）第${chapter}章的练习题，模拟真实考试环境。`
     : `Practice questions for the AWS ${id} (${data?.en ?? id}) exam, Chapter ${chapter}.`;
 
+  const langPath = lang === 'en' ? '' : `/${lang}`;
   const items = questions.map((q, i) => {
     const lq = (lang === 'ja' ? q.ja : lang === 'zh' ? q.zh : q.en) ?? q.en;
     if (!lq?.stem) return '';
@@ -233,8 +269,11 @@ export function injectQuestions(
           .map(([k, v]) => `        <li>${esc(k)}. ${esc(v)}</li>`)
           .join('\n')
       : '';
+    const qUrl = `${langPath}/cert/${certId}/chapter/${chapter}/question/${i + 1}`;
+    const viewLabel = lang === 'ja' ? 'この問題を見る →' : lang === 'zh' ? '查看题目 →' : 'View question →';
     return `    <li id="q${i + 1}">
-      <p>Q${i + 1}. ${esc(lq.stem)}</p>${optionHtml ? `\n      <ul>\n${optionHtml}\n      </ul>` : ''}
+      <p>Q${i + 1}. <a href="${qUrl}">${esc(lq.stem)}</a></p>${optionHtml ? `\n      <ul>\n${optionHtml}\n      </ul>` : ''}
+      <p><a href="${qUrl}">${viewLabel}</a></p>
     </li>`;
   }).filter(Boolean).join('\n');
 
@@ -296,7 +335,7 @@ export function buildCertJsonLd(certId: string, lang: Lang): object | null {
   };
 }
 
-export function buildBreadcrumbJsonLd(lang: Lang, certId?: string, chapter?: number): object | null {
+export function buildBreadcrumbJsonLd(lang: Lang, certId?: string, chapter?: number, questionPosition?: number): object | null {
   const homeUrl = lang === 'en' ? `${BASE_URL}/` : `${BASE_URL}/${lang}/`;
   const homeName = lang === 'ja' ? 'AWS認定試験 練習問題' : lang === 'zh' ? 'AWS认证练习题' : 'AWS Exam Practice';
   const items: object[] = [
@@ -316,6 +355,12 @@ export function buildBreadcrumbJsonLd(lang: Lang, certId?: string, chapter?: num
         : `${BASE_URL}/${lang}/cert/${certId}/chapter/${chapter}`;
       const chapterName = lang === 'ja' ? `第${chapter}章` : lang === 'zh' ? `第${chapter}章` : `Chapter ${chapter}`;
       items.push({ '@type': 'ListItem', 'position': 3, 'name': chapterName, 'item': chapterUrl });
+      if (questionPosition != null) {
+        const qUrl = lang === 'en'
+          ? `${BASE_URL}/cert/${certId}/chapter/${chapter}/question/${questionPosition}`
+          : `${BASE_URL}/${lang}/cert/${certId}/chapter/${chapter}/question/${questionPosition}`;
+        items.push({ '@type': 'ListItem', 'position': 4, 'name': `Q${questionPosition}`, 'item': qUrl });
+      }
     }
   }
   if (items.length < 2) return null;
@@ -374,4 +419,150 @@ export function buildChapterJsonLd(certId: string, chapter: number, lang: Lang, 
     'educationalLevel': 'Professional',
     'hasPart': hasPart,
   };
+}
+
+// ─── Individual question page helpers ─────────────────────────────────────────
+
+export function buildQuestionMeta(
+  certId: string,
+  chapter: number,
+  position: number,
+  q: Question,
+  lang: Lang,
+): PageMeta {
+  const data = CERT_DATA[certId];
+  const id = certId.toUpperCase();
+  const lq = (lang === 'ja' ? q.ja : lang === 'zh' ? q.zh : q.en) ?? q.en;
+  const stem = lq?.stem ?? '';
+  const shortStem = stem.length > 70 ? stem.slice(0, 70) + '…' : stem;
+  const canonical = lang === 'en'
+    ? `${BASE_URL}/cert/${certId}/chapter/${chapter}/question/${position}`
+    : `${BASE_URL}/${lang}/cert/${certId}/chapter/${chapter}/question/${position}`;
+  const enPath = `/cert/${certId}/chapter/${chapter}/question/${position}`;
+
+  const correctKeys = q.correct_answers ?? [];
+  const correctText = lq?.options
+    ? correctKeys.map(k => `${k}. ${lq!.options![k]}`).join(', ')
+    : correctKeys.join(', ');
+  const snippet = lq?.analysis
+    ? (lq.analysis.length > 130 ? lq.analysis.slice(0, 130) + '…' : lq.analysis)
+    : '';
+
+  if (lang === 'ja') return {
+    lang, canonical, enPath, ogType: 'article',
+    title: `Q${position}: ${shortStem} | AWS ${id} 第${chapter}章`,
+    description: `${stem} 正解: ${correctText}。${snippet}`,
+    keywords: `AWS ${id},${certId},第${chapter}章,Q${position},練習問題,AWS試験対策,無料,2025年`,
+  };
+  if (lang === 'zh') return {
+    lang, canonical, enPath, ogType: 'article',
+    title: `Q${position}: ${shortStem} | AWS ${id} 第${chapter}章`,
+    description: `${stem} 正确答案: ${correctText}。${snippet}`,
+    keywords: `AWS ${id},${certId},第${chapter}章,Q${position},练习题,AWS备考,免费,2025`,
+  };
+  return {
+    lang, canonical, enPath, ogType: 'article',
+    title: `Q${position}: ${shortStem} | AWS ${id} Ch.${chapter} Practice`,
+    description: `${stem} Correct answer: ${correctText}. ${snippet}`,
+    keywords: `AWS ${id} Q${position} chapter ${chapter}, ${certId} practice test free 2025, ${certId} exam question, ${data?.en ?? id}`,
+  };
+}
+
+export function buildSingleQuestionJsonLd(
+  certId: string,
+  chapter: number,
+  position: number,
+  q: Question,
+  lang: Lang,
+): object | null {
+  const data = CERT_DATA[certId];
+  if (!data) return null;
+  const id = certId.toUpperCase();
+  const lq = (lang === 'ja' ? q.ja : lang === 'zh' ? q.zh : q.en) ?? q.en;
+  if (!lq?.stem) return null;
+
+  const langPath = lang === 'en' ? '' : `/${lang}`;
+  const url = `${BASE_URL}${langPath}/cert/${certId}/chapter/${chapter}/question/${position}`;
+
+  const suggestedAnswer = lq.options
+    ? Object.entries(lq.options).map(([k, v]) => ({ '@type': 'Answer', 'text': `${k}. ${v}` }))
+    : [];
+
+  const accepted = (q.correct_answers ?? [])
+    .map(k => lq.options?.[k] ? { '@type': 'Answer', 'text': `${k}. ${lq.options![k]}` } : null)
+    .filter((a): a is { '@type': string; text: string } => a !== null);
+
+  const qObj: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Question',
+    'name': lq.stem.slice(0, 110),
+    'text': lq.stem,
+    'url': url,
+    'inLanguage': lang === 'ja' ? 'ja-JP' : lang === 'zh' ? 'zh-CN' : 'en-US',
+    'about': { '@type': 'Thing', 'name': `AWS ${id} ${data.en}` },
+  };
+
+  if (suggestedAnswer.length) qObj['suggestedAnswer'] = suggestedAnswer;
+  if (accepted.length === 1) qObj['acceptedAnswer'] = accepted[0];
+  else if (accepted.length > 1) qObj['acceptedAnswer'] = accepted;
+
+  return qObj;
+}
+
+export function injectSingleQuestion(
+  html: string,
+  q: Question,
+  position: number,
+  total: number,
+  lang: Lang,
+  certId: string,
+  chapter: number,
+): string {
+  const data = CERT_DATA[certId];
+  const id = certId.toUpperCase();
+  const lq = (lang === 'ja' ? q.ja : lang === 'zh' ? q.zh : q.en) ?? q.en;
+  if (!lq?.stem) return html;
+
+  const langPath = lang === 'en' ? '' : `/${lang}`;
+  const chapterPath = `${langPath}/cert/${certId}/chapter/${chapter}`;
+  const prevPath = position > 1 ? `${langPath}/cert/${certId}/chapter/${chapter}/question/${position - 1}` : null;
+  const nextPath = position < total ? `${langPath}/cert/${certId}/chapter/${chapter}/question/${position + 1}` : null;
+
+  const optionsHtml = lq.options
+    ? Object.entries(lq.options)
+        .map(([k, v]) => {
+          const correct = q.correct_answers?.includes(k) ? ' ✓' : '';
+          return `      <li>${esc(k)}. ${esc(v)}${correct}</li>`;
+        })
+        .join('\n')
+    : '';
+
+  const correctText = (q.correct_answers ?? [])
+    .map(k => lq.options?.[k] ? `${k}. ${lq.options![k]}` : k)
+    .join(', ');
+
+  const certLabel = lang === 'en' ? `AWS ${id} Ch.${chapter}` : `AWS ${id} 第${chapter}章`;
+  const qLabel = lang === 'en' ? `Question ${position} of ${total}`
+    : lang === 'zh' ? `第 ${position}/${total} 题` : `第 ${position}/${total} 問`;
+  const answerLabel = lang === 'en' ? 'Correct Answer' : lang === 'zh' ? '正确答案' : '正解';
+  const explLabel = lang === 'en' ? 'Explanation' : lang === 'zh' ? '解析' : '解説';
+  const backLabel = lang === 'en' ? `← Chapter ${chapter}`
+    : lang === 'zh' ? `← 返回第${chapter}章` : `← 第${chapter}章`;
+
+  const parts = [
+    `<article id="seo-questions">`,
+    `  <h1>Q${position} — ${esc(certLabel)}</h1>`,
+    `  <p>${esc(qLabel)} | <a href="${chapterPath}">${esc(backLabel)}</a></p>`,
+    `  <p>${esc(lq.stem)}</p>`,
+    lq.options ? `  <ul>\n${optionsHtml}\n  </ul>` : '',
+    `  <h2>${esc(answerLabel)}: ${esc(correctText)}</h2>`,
+    lq.analysis ? `  <h3>${esc(explLabel)}</h3>\n  <p>${esc(lq.analysis)}</p>` : '',
+    `  <nav>`,
+    prevPath ? `    <a href="${prevPath}">← Q${position - 1}</a>` : '',
+    nextPath ? `    <a href="${nextPath}">Q${position + 1} →</a>` : '',
+    `  </nav>`,
+    `</article>`,
+  ].filter(Boolean).join('\n');
+
+  return html.replace('</body>', `${parts}\n</body>`);
 }

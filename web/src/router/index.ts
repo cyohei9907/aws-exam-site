@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, RouterView } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 import CertView from '@/views/CertView.vue'
 import PracticeView from '@/views/PracticeView.vue'
+import QuestionView from '@/views/QuestionView.vue'
 import ResultView from '@/views/ResultView.vue'
 import { useSettingsStore } from '@/stores/settings'
 
@@ -16,6 +17,7 @@ const router = createRouter({
         { path: '', component: HomeView },
         { path: 'cert/:certId', component: CertView },
         { path: 'cert/:certId/chapter/:chapterId', component: PracticeView },
+        { path: 'cert/:certId/chapter/:chapterId/question/:position', component: QuestionView },
         { path: 'results', component: ResultView },
       ],
     },
@@ -24,6 +26,7 @@ const router = createRouter({
     { path: '/practice', redirect: '/#certs' },
     { path: '/cert/:certId', component: CertView },
     { path: '/cert/:certId/chapter/:chapterId', component: PracticeView },
+    { path: '/cert/:certId/chapter/:chapterId/question/:position', component: QuestionView },
     { path: '/results', component: ResultView },
   ],
   scrollBehavior(to) {

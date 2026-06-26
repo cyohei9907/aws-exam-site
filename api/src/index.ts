@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import certsRoutes from './routes/certs';
 import chaptersRoutes from './routes/chapters';
 import sitemapRoutes from './routes/sitemap';
-import { getMetaForUrl, injectMeta, injectQuestions, injectJsonLd, buildHomeJsonLd, buildCertJsonLd, buildChapterJsonLd, buildBreadcrumbJsonLd } from './lib/metaInjector';
+import { getMetaForUrl, injectMeta, injectQuestions, injectJsonLd, buildHomeJsonLd, buildCertJsonLd, buildChapterJsonLd, buildBreadcrumbJsonLd, buildQuestionMeta, buildSingleQuestionJsonLd, injectSingleQuestion } from './lib/metaInjector';
 import { loadChapter } from './lib/gcs';
 
 // Free chapters whose question text we expose in SSR HTML for indexing
@@ -19,8 +19,10 @@ const FREE_CHAPTERS: Record<string, number[]> = {
   'aif-c01': [1, 2, 3],
 };
 
-// Matches /cert/saa-c03/chapter/1  or  /ja/cert/saa-c03/chapter/1  etc.
-const CHAPTER_RE = /^\/(?:(?:ja|zh)\/)?cert\/([a-z0-9-]+)\/chapter\/(\d+)/;
+// Matches /cert/saa-c03/chapter/1  or  /ja/cert/saa-c03/chapter/1  (no trailing path)
+const CHAPTER_RE = /^\/(?:(?:ja|zh)\/)?cert\/([a-z0-9-]+)\/chapter\/(\d+)$/;
+// Matches /cert/saa-c03/chapter/1/question/42  or  /ja/cert/...
+const QUESTION_RE = /^\/(?:(?:ja|zh)\/)?cert\/([a-z0-9-]+)\/chapter\/(\d+)\/question\/(\d+)/;
 
 const start = async () => {
   const app = Fastify({ logger: true });
@@ -75,6 +77,32 @@ const start = async () => {
         const breadcrumb = buildBreadcrumbJsonLd(meta.lang, certOnlyMatch[1]);
         if (breadcrumb) html = injectJsonLd(html, breadcrumb);
       }
+    }
+
+    // Individual question pages: SSR with full Q+A content for Googlebot
+    const questionMatch = request.url.match(QUESTION_RE);
+    if (questionMatch) {
+      const certId = questionMatch[1];
+      const chapterId = parseInt(questionMatch[2], 10);
+      const position = parseInt(questionMatch[3], 10);
+      if (FREE_CHAPTERS[certId]?.includes(chapterId)) {
+        try {
+          const questions = await loadChapter(certId, chapterId);
+          const q = questions[position - 1];
+          if (q) {
+            const qMeta = buildQuestionMeta(certId, chapterId, position, q, meta.lang);
+            html = injectMeta(indexHtml, qMeta);
+            const qJld = buildSingleQuestionJsonLd(certId, chapterId, position, q, meta.lang);
+            if (qJld) html = injectJsonLd(html, qJld);
+            const breadcrumb = buildBreadcrumbJsonLd(meta.lang, certId, chapterId, position);
+            if (breadcrumb) html = injectJsonLd(html, breadcrumb);
+            html = injectSingleQuestion(html, q, position, questions.length, meta.lang, certId, chapterId);
+          }
+        } catch {
+          // GCS failure: serve with generic meta
+        }
+      }
+      return reply.type('text/html').send(html);
     }
 
     // Full question injection for free chapter pages (all questions + options, visible HTML)
