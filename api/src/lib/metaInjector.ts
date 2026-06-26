@@ -204,10 +204,50 @@ export function injectMeta(html: string, meta: PageMeta): string {
     .replace('</head>', `${hreflangLinks}\n</head>`);
 }
 
-export function injectQuestions(html: string, stems: string[]): string {
-  if (!stems.length) return html;
-  const items = stems.map((s) => `    <li>${esc(s)}</li>`).join('\n');
-  const section = `<section id="seo-q" style="display:none" aria-hidden="true">\n  <ol>\n${items}\n  </ol>\n</section>`;
+export function injectQuestions(
+  html: string,
+  questions: Question[],
+  lang: Lang,
+  certId: string,
+  chapter: number,
+): string {
+  if (!questions.length) return html;
+
+  const data = CERT_DATA[certId];
+  const id = certId.toUpperCase();
+  const countLabel = lang === 'ja' ? `${questions.length}問`
+    : lang === 'zh' ? `${questions.length}道`
+    : `${questions.length} Questions`;
+  const heading = lang === 'ja' ? `AWS ${id} 第${chapter}章 練習問題（${countLabel}）`
+    : lang === 'zh' ? `AWS ${id} 第${chapter}章 练习题（${countLabel}）`
+    : `AWS ${id} Chapter ${chapter} Practice Questions (${countLabel})`;
+  const subheading = lang === 'ja' ? `AWS ${id}（${data?.ja ?? id}）第${chapter}章の本番形式の練習問題です。`
+    : lang === 'zh' ? `以下是 AWS ${id}（${data?.zh ?? id}）第${chapter}章的练习题，模拟真实考试环境。`
+    : `Practice questions for the AWS ${id} (${data?.en ?? id}) exam, Chapter ${chapter}.`;
+
+  const items = questions.map((q, i) => {
+    const lq = (lang === 'ja' ? q.ja : lang === 'zh' ? q.zh : q.en) ?? q.en;
+    if (!lq?.stem) return '';
+    const optionHtml = lq.options
+      ? Object.entries(lq.options)
+          .map(([k, v]) => `        <li>${esc(k)}. ${esc(v)}</li>`)
+          .join('\n')
+      : '';
+    return `    <li id="q${i + 1}">
+      <p>Q${i + 1}. ${esc(lq.stem)}</p>${optionHtml ? `\n      <ul>\n${optionHtml}\n      </ul>` : ''}
+    </li>`;
+  }).filter(Boolean).join('\n');
+
+  const section = [
+    `<section id="seo-questions">`,
+    `  <h2>${esc(heading)}</h2>`,
+    `  <p>${esc(subheading)}</p>`,
+    `  <ol>`,
+    items,
+    `  </ol>`,
+    `</section>`,
+  ].join('\n');
+
   return html.replace('</body>', `${section}\n</body>`);
 }
 
@@ -254,6 +294,32 @@ export function buildCertJsonLd(certId: string, lang: Lang): object | null {
     'educationalLevel': 'Professional',
     'teaches': `AWS ${id} ${data.en} Certification`,
   };
+}
+
+export function buildBreadcrumbJsonLd(lang: Lang, certId?: string, chapter?: number): object | null {
+  const homeUrl = lang === 'en' ? `${BASE_URL}/` : `${BASE_URL}/${lang}/`;
+  const homeName = lang === 'ja' ? 'AWS認定試験 練習問題' : lang === 'zh' ? 'AWS认证练习题' : 'AWS Exam Practice';
+  const items: object[] = [
+    { '@type': 'ListItem', 'position': 1, 'name': homeName, 'item': homeUrl },
+  ];
+  if (certId) {
+    const data = CERT_DATA[certId];
+    if (!data) return null;
+    const certUrl = lang === 'en' ? `${BASE_URL}/cert/${certId}` : `${BASE_URL}/${lang}/cert/${certId}`;
+    const certName = lang === 'ja' ? `${certId.toUpperCase()} ${data.ja}`
+      : lang === 'zh' ? `${certId.toUpperCase()} ${data.zh}`
+      : `${certId.toUpperCase()} ${data.en}`;
+    items.push({ '@type': 'ListItem', 'position': 2, 'name': certName, 'item': certUrl });
+    if (chapter != null) {
+      const chapterUrl = lang === 'en'
+        ? `${BASE_URL}/cert/${certId}/chapter/${chapter}`
+        : `${BASE_URL}/${lang}/cert/${certId}/chapter/${chapter}`;
+      const chapterName = lang === 'ja' ? `第${chapter}章` : lang === 'zh' ? `第${chapter}章` : `Chapter ${chapter}`;
+      items.push({ '@type': 'ListItem', 'position': 3, 'name': chapterName, 'item': chapterUrl });
+    }
+  }
+  if (items.length < 2) return null;
+  return { '@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': items };
 }
 
 export function buildChapterJsonLd(certId: string, chapter: number, lang: Lang, questions: Question[]): object | null {

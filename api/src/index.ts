@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import certsRoutes from './routes/certs';
 import chaptersRoutes from './routes/chapters';
 import sitemapRoutes from './routes/sitemap';
-import { getMetaForUrl, injectMeta, injectQuestions, injectJsonLd, buildHomeJsonLd, buildCertJsonLd, buildChapterJsonLd } from './lib/metaInjector';
+import { getMetaForUrl, injectMeta, injectQuestions, injectJsonLd, buildHomeJsonLd, buildCertJsonLd, buildChapterJsonLd, buildBreadcrumbJsonLd } from './lib/metaInjector';
 import { loadChapter } from './lib/gcs';
 
 // Free chapters whose question text we expose in SSR HTML for indexing
@@ -70,12 +70,14 @@ const start = async () => {
     } else {
       const certOnlyMatch = meta.enPath.match(/^\/cert\/([a-z0-9-]+)$/);
       if (certOnlyMatch) {
-        const jld = buildCertJsonLd(certOnlyMatch[1], meta.lang);
-        if (jld) html = injectJsonLd(html, jld);
+        const certJld = buildCertJsonLd(certOnlyMatch[1], meta.lang);
+        if (certJld) html = injectJsonLd(html, certJld);
+        const breadcrumb = buildBreadcrumbJsonLd(meta.lang, certOnlyMatch[1]);
+        if (breadcrumb) html = injectJsonLd(html, breadcrumb);
       }
     }
 
-    // Question injection + JSON-LD for free chapter pages (30-min GCS cache)
+    // Full question injection for free chapter pages (all questions + options, visible HTML)
     const chapterMatch = request.url.match(CHAPTER_RE);
     if (chapterMatch) {
       const certId = chapterMatch[1];
@@ -84,16 +86,16 @@ const start = async () => {
         try {
           const questions = await loadChapter(certId, chapterId);
 
-          // JSON-LD with full Q+A structured data for Google
+          // JSON-LD with full Q+A structured data
           const chapterJld = buildChapterJsonLd(certId, chapterId, meta.lang, questions);
           if (chapterJld) html = injectJsonLd(html, chapterJld);
 
-          // Hidden text stems for keyword indexing
-          const stems = questions
-            .slice(0, 10)
-            .map((q) => ((meta.lang === 'ja' ? q.ja : meta.lang === 'zh' ? q.zh : q.en)?.stem ?? q.en?.stem ?? '').trim())
-            .filter(Boolean);
-          html = injectQuestions(html, stems);
+          // BreadcrumbList
+          const breadcrumb = buildBreadcrumbJsonLd(meta.lang, certId, chapterId);
+          if (breadcrumb) html = injectJsonLd(html, breadcrumb);
+
+          // Visible question HTML: all questions + options, removed by Vue on mount
+          html = injectQuestions(html, questions, meta.lang, certId, chapterId);
         } catch {
           // GCS failure: skip injection, serve page normally
         }
