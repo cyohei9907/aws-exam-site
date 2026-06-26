@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import certsRoutes from './routes/certs';
 import chaptersRoutes from './routes/chapters';
 import sitemapRoutes from './routes/sitemap';
-import { getMetaForUrl, injectMeta, injectQuestions } from './lib/metaInjector';
+import { getMetaForUrl, injectMeta, injectQuestions, injectJsonLd, buildHomeJsonLd, buildCertJsonLd, buildChapterJsonLd } from './lib/metaInjector';
 import { loadChapter } from './lib/gcs';
 
 // Free chapters whose question text we expose in SSR HTML for indexing
@@ -64,21 +64,34 @@ const start = async () => {
     const meta = getMetaForUrl(request.url);
     let html = injectMeta(indexHtml, meta);
 
-    // Inject first 5 question stems for free chapter pages so search engines
-    // can index the actual question text (30-min cache in gcs.ts, negligible overhead)
+    // JSON-LD for home and cert pages
+    if (meta.enPath === '/' || meta.enPath === '') {
+      html = injectJsonLd(html, buildHomeJsonLd(meta.lang));
+    } else {
+      const certOnlyMatch = meta.enPath.match(/^\/cert\/([a-z0-9-]+)$/);
+      if (certOnlyMatch) {
+        const jld = buildCertJsonLd(certOnlyMatch[1], meta.lang);
+        if (jld) html = injectJsonLd(html, jld);
+      }
+    }
+
+    // Question injection + JSON-LD for free chapter pages (30-min GCS cache)
     const chapterMatch = request.url.match(CHAPTER_RE);
     if (chapterMatch) {
       const certId = chapterMatch[1];
       const chapterId = parseInt(chapterMatch[2], 10);
       if (FREE_CHAPTERS[certId]?.includes(chapterId)) {
         try {
-          const lang = request.url.startsWith('/ja') ? 'ja'
-                     : request.url.startsWith('/zh') ? 'zh'
-                     : 'en';
           const questions = await loadChapter(certId, chapterId);
+
+          // JSON-LD with full Q+A structured data for Google
+          const chapterJld = buildChapterJsonLd(certId, chapterId, meta.lang, questions);
+          if (chapterJld) html = injectJsonLd(html, chapterJld);
+
+          // Hidden text stems for keyword indexing
           const stems = questions
-            .slice(0, 5)
-            .map((q) => (q[lang]?.stem ?? q.en?.stem ?? '').trim())
+            .slice(0, 10)
+            .map((q) => ((meta.lang === 'ja' ? q.ja : meta.lang === 'zh' ? q.zh : q.en)?.stem ?? q.en?.stem ?? '').trim())
             .filter(Boolean);
           html = injectQuestions(html, stems);
         } catch {
