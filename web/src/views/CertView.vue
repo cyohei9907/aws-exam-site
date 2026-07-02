@@ -177,8 +177,8 @@ const FREE_CHAPTERS: Record<string, number[]> = {
   'saa-c03': [1, 2, 3, 4, 5],
   'sap-c02': [1, 2, 3],
   'clf-c02': [1, 2, 3], 'dva-c02': [1, 2, 3], 'dop-c02': [1, 2, 3], 'aif-c01': [1, 2, 3],
-  'soa-c02': [], 'ans-c01': [], 'dea-c01': [], 'mla-c01': [],
-  'mls-c01': [], 'das-c01': [], 'scs-c02': [],
+  'soa-c02': [1], 'ans-c01': [1], 'dea-c01': [1], 'mla-c01': [],
+  'mls-c01': [], 'das-c01': [], 'scs-c02': [1],
 }
 
 // Per-cert attractive SEO titles (3-language)

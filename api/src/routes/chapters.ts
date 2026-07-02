@@ -11,13 +11,13 @@ const FREE_CHAPTERS: Record<string, number[]> = {
   'dva-c02': [1, 2, 3],             // 1251q / 13ch → 30% = 3
   'dop-c02': [1, 2, 3],             // 632q
   'aif-c01': [1, 2, 3],             // 528q
-  'soa-c02': [],                    // 469q — app only
-  'ans-c01': [],                    // 289q — app only
-  'dea-c01': [],                    // 240q — app only
-  'mla-c01': [],                    //  91q — app only
+  'soa-c02': [1],                   // 469q — Ch.1 free preview
+  'ans-c01': [1],                   // 289q — Ch.1 free preview
+  'dea-c01': [1],                   // 240q — Ch.1 free preview
+  'mla-c01': [],                    //  91q — app only (too few to split)
   'mls-c01': [],                    // no data — app only
   'das-c01': [],                    // no data — app only
-  'scs-c02': [],                    // 286q — app only
+  'scs-c02': [1],                   // 286q — Ch.1 free preview
 };
 
 function isFreeChapter(certId: string, chapter: number): boolean {

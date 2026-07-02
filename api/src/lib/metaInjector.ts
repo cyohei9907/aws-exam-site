@@ -24,19 +24,20 @@ const CERT_DATA: Record<string, CertEntry> = {
   'sap-c02': { en: 'Solutions Architect Professional', ja: 'ソリューションアーキテクト プロフェッショナル', zh: '解决方案架构师 专业级', total: 748, free: true },
   'clf-c02': { en: 'Cloud Practitioner', ja: 'クラウドプラクティショナー', zh: '云从业者', total: 1087, free: true },
   'dva-c02': { en: 'Developer Associate', ja: 'デベロッパー アソシエイト', zh: '开发人员 助理', total: 1251, free: true },
-  'soa-c02': { en: 'SysOps Administrator Associate', ja: 'SysOps アドミニストレーター アソシエイト', zh: 'SysOps 管理员 助理', total: 469, free: false },
+  'soa-c02': { en: 'SysOps Administrator Associate', ja: 'SysOps アドミニストレーター アソシエイト', zh: 'SysOps 管理员 助理', total: 469, free: true },
   'dop-c02': { en: 'DevOps Engineer Professional', ja: 'DevOps エンジニア プロフェッショナル', zh: 'DevOps 工程师 专业级', total: 632, free: true },
   'aif-c01': { en: 'AI Practitioner', ja: 'AI プラクティショナー', zh: 'AI 从业者', total: 528, free: true },
-  'ans-c01': { en: 'Advanced Networking Specialty', ja: '高度なネットワーキング 専門知識', zh: '高级网络 专项认证', total: 289, free: false },
-  'dea-c01': { en: 'Data Engineer Associate', ja: 'データエンジニア アソシエイト', zh: '数据工程师 助理', total: 240, free: false },
+  'ans-c01': { en: 'Advanced Networking Specialty', ja: '高度なネットワーキング 専門知識', zh: '高级网络 专项认证', total: 289, free: true },
+  'dea-c01': { en: 'Data Engineer Associate', ja: 'データエンジニア アソシエイト', zh: '数据工程师 助理', total: 240, free: true },
   'mla-c01': { en: 'Machine Learning Engineer Associate', ja: 'ML エンジニア アソシエイト', zh: '机器学习工程师 助理', total: 91, free: false },
-  'scs-c02': { en: 'Security Specialty', ja: 'セキュリティ 専門知識', zh: '安全 专项認証', total: 286, free: false },
+  'scs-c02': { en: 'Security Specialty', ja: 'セキュリティ 専門知識', zh: '安全 专项認証', total: 286, free: true },
 };
 
 // First N chapters are free to practice in the browser
 const FREE_CHAPTER_LIMIT: Record<string, number> = {
   'saa-c03': 5, 'sap-c02': 3, 'clf-c02': 3,
   'dva-c02': 3, 'dop-c02': 3, 'aif-c01': 3,
+  'soa-c02': 1, 'ans-c01': 1, 'dea-c01': 1, 'scs-c02': 1,
 };
 
 function isFreeChap(certId: string, ch: number): boolean {

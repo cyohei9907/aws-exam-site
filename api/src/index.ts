@@ -17,6 +17,10 @@ const FREE_CHAPTERS: Record<string, number[]> = {
   'dva-c02': [1, 2, 3],
   'dop-c02': [1, 2, 3],
   'aif-c01': [1, 2, 3],
+  'soa-c02': [1],
+  'ans-c01': [1],
+  'dea-c01': [1],
+  'scs-c02': [1],
 };
 
 // Matches /cert/saa-c03/chapter/1  or  /ja/cert/saa-c03/chapter/1  (no trailing path)
