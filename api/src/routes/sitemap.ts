@@ -1,15 +1,14 @@
 import { FastifyPluginAsync } from 'fastify';
+import { loadChapter } from '../lib/gcs';
 
 const BASE_URL = 'https://aws.cyohei.net';
 const LANGS = ['en', 'ja', 'zh'] as const;
 
-// Cert IDs with data (skip das-c01 / mls-c01 — no data)
 const CERTS_WITH_DATA = [
   'saa-c03', 'sap-c02', 'clf-c02', 'dva-c02', 'soa-c02',
   'dop-c02', 'aif-c01', 'ans-c01', 'dea-c01', 'mla-c01', 'scs-c02',
 ];
 
-// Free chapters per cert
 const FREE_CHAPTERS: Record<string, number[]> = {
   'saa-c03': [1, 2, 3, 4, 5],
   'sap-c02': [1, 2, 3],
@@ -47,6 +46,37 @@ function urlEntry(enPath: string, changefreq: string, priority: string): string 
   return lines.join('\n');
 }
 
+// Cache the question URL entries so repeated sitemap requests are fast
+let cachedQuestionEntries: string[] | null = null;
+let cacheTime = 0;
+const QUESTION_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+async function buildQuestionEntries(): Promise<string[]> {
+  const now = Date.now();
+  if (cachedQuestionEntries && now - cacheTime < QUESTION_CACHE_TTL_MS) {
+    return cachedQuestionEntries;
+  }
+
+  const groups = await Promise.all(
+    Object.entries(FREE_CHAPTERS).flatMap(([certId, chapters]) =>
+      chapters.map(async (ch): Promise<string[]> => {
+        try {
+          const questions = await loadChapter(certId, ch);
+          return questions.map((_, i) =>
+            urlEntry(`/cert/${certId}/chapter/${ch}/question/${i + 1}`, 'monthly', '0.5')
+          );
+        } catch {
+          return [];
+        }
+      })
+    )
+  );
+
+  cachedQuestionEntries = groups.flat();
+  cacheTime = now;
+  return cachedQuestionEntries;
+}
+
 const sitemapPlugin: FastifyPluginAsync = async (app) => {
   app.get('/sitemap.xml', async (_req, reply) => {
     const entries: string[] = [urlEntry('/', 'weekly', '1.0')];
@@ -54,9 +84,13 @@ const sitemapPlugin: FastifyPluginAsync = async (app) => {
     for (const certId of CERTS_WITH_DATA) {
       entries.push(urlEntry(`/cert/${certId}`, 'weekly', '0.8'));
       for (const ch of FREE_CHAPTERS[certId] ?? []) {
-        entries.push(urlEntry(`/cert/${certId}/chapter/${ch}`, 'monthly', '0.6'));
+        entries.push(urlEntry(`/cert/${certId}/chapter/${ch}`, 'weekly', '0.7'));
       }
     }
+
+    // Append individual question pages (loaded from GCS, cached 6h)
+    const questionEntries = await buildQuestionEntries();
+    entries.push(...questionEntries);
 
     const xml = [
       '<?xml version="1.0" encoding="UTF-8"?>',
