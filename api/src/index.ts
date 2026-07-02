@@ -39,20 +39,38 @@ const start = async () => {
   await app.register(certsRoutes, { prefix: '/api' });
   await app.register(chaptersRoutes, { prefix: '/api' });
 
-  // Serve Vue SPA from web/dist (relative to api/dist after build)
+  // Resolve web dist and read index.html BEFORE registering static/SSR routes
   const webDistPath = path.resolve(__dirname, '../../web/dist');
-  await app.register(fastifyStatic, {
-    root: webDistPath,
-    prefix: '/',
-  });
-
-  // Cache index.html contents at startup to avoid per-request disk reads
   let indexHtml: string;
   try {
     indexHtml = await fs.readFile(path.join(webDistPath, 'index.html'), 'utf-8');
   } catch {
     indexHtml = '';
   }
+
+  // ── Home page SSR routes (must be registered BEFORE fastifyStatic so they
+  //    take precedence over it serving index.html as a plain static file) ──────
+  //
+  // fastifyStatic would serve / as a bare Vue shell (no meta injection).
+  // By registering explicit handlers here, Googlebot gets proper title,
+  // description, and JSON-LD for the home page in all three languages.
+
+  // Register for each lang variant (with and without trailing slash)
+  for (const variant of ['/', '/ja', '/ja/', '/zh', '/zh/']) {
+    app.get(variant, async (_request, reply) => {
+      if (!indexHtml) return reply.code(503).send('Service unavailable');
+      const meta = getMetaForUrl(variant === '/ja/' ? '/ja' : variant === '/zh/' ? '/zh' : variant);
+      let html = injectMeta(indexHtml, meta);
+      html = injectJsonLd(html, buildHomeJsonLd(meta.lang));
+      return reply.type('text/html').send(html);
+    });
+  }
+
+  // Serve Vue SPA static assets (JS/CSS/images) from web/dist
+  await app.register(fastifyStatic, {
+    root: webDistPath,
+    prefix: '/',
+  });
 
   // SPA fallback: inject per-page meta (and question content for free chapters)
   app.setNotFoundHandler(async (request, reply) => {
@@ -66,17 +84,13 @@ const start = async () => {
     const meta = getMetaForUrl(request.url);
     let html = injectMeta(indexHtml, meta);
 
-    // JSON-LD for home and cert pages
-    if (meta.enPath === '/' || meta.enPath === '') {
-      html = injectJsonLd(html, buildHomeJsonLd(meta.lang));
-    } else {
-      const certOnlyMatch = meta.enPath.match(/^\/cert\/([a-z0-9-]+)$/);
-      if (certOnlyMatch) {
-        const certJld = buildCertJsonLd(certOnlyMatch[1], meta.lang);
-        if (certJld) html = injectJsonLd(html, certJld);
-        const breadcrumb = buildBreadcrumbJsonLd(meta.lang, certOnlyMatch[1]);
-        if (breadcrumb) html = injectJsonLd(html, breadcrumb);
-      }
+    // JSON-LD for cert pages
+    const certOnlyMatch = meta.enPath.match(/^\/cert\/([a-z0-9-]+)$/);
+    if (certOnlyMatch) {
+      const certJld = buildCertJsonLd(certOnlyMatch[1], meta.lang);
+      if (certJld) html = injectJsonLd(html, certJld);
+      const breadcrumb = buildBreadcrumbJsonLd(meta.lang, certOnlyMatch[1]);
+      if (breadcrumb) html = injectJsonLd(html, breadcrumb);
     }
 
     // Individual question pages: SSR with full Q+A content for Googlebot
