@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDebounceFn } from '@vueuse/core'
 import { useSettingsStore } from '@/stores/settings'
-import { searchQuestions, ApiError, type Question } from '@/api/client'
+import { searchQuestions, ApiError, type Question, type SearchMode } from '@/api/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -32,10 +32,12 @@ const certName = (id: string) => CERT_NAMES[id]?.[lang.value] ?? id.toUpperCase(
 // ── State ──────────────────────────────────────────────────────────────────────
 const input = ref((route.query.q as string) ?? '')
 const scopeCert = computed(() => (route.query.cert as string) || '')
+const mode = ref<SearchMode>(route.query.mode === 'semantic' ? 'semantic' : 'keyword')
 const results = ref<Question[]>([])
 const total = ref(0)
 const loading = ref(false)
 const errorCode = ref<string | null>(null)
+const semanticNotice = ref(false) // shown when semantic falls back to keyword
 const expanded = ref<Set<string>>(new Set())
 const searched = ref(false)
 
@@ -70,10 +72,23 @@ async function runSearch() {
   loading.value = true
   searched.value = true
   try {
-    const res = await searchQuestions(q, lang.value, { cert: scopeCert.value || undefined, limit: 30 })
+    const res = await searchQuestions(q, lang.value, {
+      cert: scopeCert.value || undefined,
+      limit: 30,
+      mode: mode.value,
+    })
     results.value = res.results
     total.value = res.total
+    if (mode.value === 'semantic') semanticNotice.value = false
   } catch (e) {
+    // Semantic unavailable → automatically fall back to keyword search once.
+    if (e instanceof ApiError && e.code === 'semantic_unavailable' && mode.value === 'semantic') {
+      semanticNotice.value = true
+      mode.value = 'keyword'
+      syncUrl()
+      await runSearch()
+      return
+    }
     results.value = []
     total.value = 0
     errorCode.value = e instanceof ApiError ? e.code ?? 'error' : 'error'
@@ -84,14 +99,36 @@ async function runSearch() {
 
 const debouncedSearch = useDebounceFn(runSearch, 300)
 
-// Keep the URL query in sync (shareable), then search.
-function onInput() {
+// Keep the URL query in sync (shareable): q, cert scope, and semantic mode.
+function syncUrl() {
   const q = input.value.trim()
   const query: Record<string, string> = {}
   if (q) query.q = q
   if (scopeCert.value) query.cert = scopeCert.value
+  if (mode.value === 'semantic') query.mode = 'semantic'
   router.replace({ path: route.path, query })
+}
+
+function onInput() {
+  syncUrl()
   debouncedSearch()
+}
+
+// Toggle between keyword and semantic search.
+function setMode(m: SearchMode) {
+  if (mode.value === m) return
+  mode.value = m
+  if (m === 'keyword') semanticNotice.value = false
+  syncUrl()
+  runSearch()
+}
+
+// Clear the cert scope while preserving query + mode.
+function clearScope() {
+  const query: Record<string, string> = {}
+  if (input.value.trim()) query.q = input.value.trim()
+  if (mode.value === 'semantic') query.mode = 'semantic'
+  router.replace({ path: route.path, query })
 }
 
 // Open the question's chapter in practice mode (free chapters only). Question
@@ -105,6 +142,18 @@ function openInPractice(r: Question) {
 onMounted(runSearch)
 watch(lang, runSearch)
 watch(() => route.query.cert, runSearch)
+// React to external URL changes to mode (e.g. browser back/forward).
+watch(
+  () => route.query.mode,
+  (m) => {
+    const next: SearchMode = m === 'semantic' ? 'semantic' : 'keyword'
+    if (next !== mode.value) {
+      mode.value = next
+      if (next === 'keyword') semanticNotice.value = false
+      runSearch()
+    }
+  },
+)
 </script>
 
 <template>
@@ -121,17 +170,46 @@ watch(() => route.query.cert, runSearch)
       <input
         v-model="input"
         type="search"
-        :placeholder="t('問題をキーワード検索…', 'Search questions by keyword…', '按关键字搜索题目…')"
+        :placeholder="mode === 'semantic'
+          ? t('意味で問題を検索…', 'Search questions by meaning…', '按语义搜索题目…')
+          : t('問題をキーワード検索…', 'Search questions by keyword…', '按关键字搜索题目…')"
         class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 outline-none text-slate-900"
         @input="onInput"
       />
+    </div>
+
+    <!-- Search mode toggle -->
+    <div class="flex items-center gap-2 mb-3">
+      <div class="inline-flex rounded-lg bg-slate-100 p-0.5" role="tablist">
+        <button
+          v-for="m in (['keyword', 'semantic'] as const)"
+          :key="m"
+          type="button"
+          role="tab"
+          :aria-selected="mode === m"
+          class="px-3.5 py-1.5 text-sm font-medium rounded-md transition-colors"
+          :class="mode === m ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+          @click="setMode(m)"
+        >
+          {{ m === 'keyword' ? t('キーワード', 'Keyword', '关键字') : t('意味', 'Semantic', '语义') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Fallback notice: semantic unavailable → switched to keyword -->
+    <div v-if="semanticNotice" class="rounded-lg bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 text-sm mb-3">
+      {{ t(
+        '意味検索は現在利用できません。キーワード検索に切り替えました。',
+        'Semantic search is unavailable right now — switched to keyword search.',
+        '语义搜索当前不可用，已切换为关键字搜索。',
+      ) }}
     </div>
 
     <!-- Scope + disclosure -->
     <div class="flex flex-wrap items-center gap-2 text-sm text-slate-500 mb-6">
       <span v-if="scopeCert" class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 font-medium px-2.5 py-1 rounded-full">
         {{ t('絞り込み', 'Within', '范围') }}: {{ certCode(scopeCert) }}
-        <button class="hover:text-slate-900" @click="router.replace({ path: route.path, query: input.trim() ? { q: input.trim() } : {} })">✕</button>
+        <button class="hover:text-slate-900" @click="clearScope">✕</button>
       </span>
       <span v-else>{{ t('すべての試験', 'All certifications', '全部认证') }}</span>
       <span>·</span>
@@ -190,7 +268,14 @@ watch(() => route.query.cert, runSearch)
             >
               {{ r.difficulty === 'hard' ? t('難', 'Hard', '难') : r.difficulty === 'medium' ? t('中', 'Medium', '中') : t('易', 'Easy', '易') }}
             </span>
-            <span class="text-xs text-slate-400 ml-auto">{{ certName(r.cert_id) }}</span>
+            <span
+              v-if="mode === 'semantic' && r.score != null"
+              class="text-xs font-medium px-2 py-0.5 rounded bg-orange-50 text-orange-600 border border-orange-100 ml-auto"
+              :title="t('意味の類似度', 'Semantic similarity', '语义相似度')"
+            >
+              {{ t('類似度', 'match', '匹配') }} {{ Math.round(r.score * 100) }}%
+            </span>
+            <span class="text-xs text-slate-400" :class="{ 'ml-auto': !(mode === 'semantic' && r.score != null) }">{{ certName(r.cert_id) }}</span>
           </div>
 
           <!-- stem -->

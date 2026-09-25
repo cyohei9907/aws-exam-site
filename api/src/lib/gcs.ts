@@ -1,6 +1,6 @@
 import { Storage } from '@google-cloud/storage';
 
-const BUCKET_NAME = 'aws-storage-iosapp-497614';
+export const BUCKET_NAME = 'aws-storage-iosapp-497614';
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 const storage = new Storage(); // uses Application Default Credentials
@@ -88,4 +88,28 @@ export async function loadChapter(certId: string, chapterId: number): Promise<Qu
 
   setCache(CACHE_KEY, questions);
   return questions;
+}
+
+// ─── Generic JSON helpers (used by the embeddings pipeline) ─────────────────────
+
+/**
+ * Download and parse a JSON object at an arbitrary bucket path.
+ * Returns null when the object does not exist (404) so callers can treat a
+ * missing file as a non-fatal "not built yet" state.
+ */
+export async function downloadJsonIfExists<T>(gcsPath: string): Promise<T | null> {
+  try {
+    const [contents] = await bucket.file(gcsPath).download();
+    return JSON.parse(contents.toString('utf-8')) as T;
+  } catch (err) {
+    if ((err as { code?: number })?.code === 404) return null;
+    throw err;
+  }
+}
+
+/** Serialize `data` to JSON and upload it to `gcsPath` (overwrites). */
+export async function uploadJson(gcsPath: string, data: unknown): Promise<void> {
+  await bucket.file(gcsPath).save(JSON.stringify(data), {
+    contentType: 'application/json',
+  });
 }

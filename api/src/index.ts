@@ -9,6 +9,7 @@ import searchRoutes from './routes/search';
 import sitemapRoutes from './routes/sitemap';
 import { getMetaForUrl, injectMeta, injectQuestions, injectJsonLd, buildHomeJsonLd, buildCertJsonLd, buildChapterJsonLd, buildBreadcrumbJsonLd, buildQuestionMeta, buildSingleQuestionJsonLd, injectSingleQuestion } from './lib/metaInjector';
 import { loadChapter } from './lib/gcs';
+import * as vectorStore from './lib/vectorStore';
 
 // Free chapters whose question text we expose in SSR HTML for indexing
 const FREE_CHAPTERS: Record<string, number[]> = {
@@ -44,6 +45,9 @@ const start = async () => {
   await app.register(certsRoutes, { prefix: '/api' });
   await app.register(chaptersRoutes, { prefix: '/api' });
   await app.register(searchRoutes, { prefix: '/api' });
+
+  // Warm the semantic vector store in the background (non-fatal if absent).
+  void vectorStore.warm();
 
   // Resolve web dist and read index.html BEFORE registering static/SSR routes
   const webDistPath = path.resolve(__dirname, '../../web/dist');

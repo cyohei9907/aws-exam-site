@@ -30,7 +30,10 @@ export interface Question {
   chapter: number
   correct_answers: string[]
   translation: QuestionTranslation
+  score?: number // present on semantic results (cosine similarity, 0–1)
 }
+
+export type SearchMode = 'keyword' | 'semantic'
 
 export interface CheckResult {
   correct: boolean
@@ -43,6 +46,7 @@ export interface SearchResponse {
   total: number
   query: string
   lang: string
+  mode?: SearchMode
 }
 
 // ─── Error types ──────────────────────────────────────────────────────────────
@@ -109,18 +113,21 @@ export async function fetchChapter(
 }
 
 /**
- * GET /api/search?q=&lang=&limit=&cert=   (cross-cert)
- * GET /api/certs/{cert}/search?q=&lang=&limit=   (scoped to one cert)
+ * GET /api/search?q=&lang=&limit=&cert=&mode=   (cross-cert)
+ * GET /api/certs/{cert}/search?q=&lang=&limit=&mode=   (scoped to one cert)
  * Searches question stem / options / analysis within FREE chapters only.
- * Throws ApiError with code 'rate_limited' (status 429) when throttled.
+ * `mode` selects keyword (default, substring) or semantic (vector) search.
+ * Throws ApiError with code 'rate_limited' (429) when throttled, or
+ * 'semantic_unavailable' (503) when semantic search is not available.
  */
 export async function searchQuestions(
   query: string,
   lang: string,
-  opts: { cert?: string; limit?: number } = {},
+  opts: { cert?: string; limit?: number; mode?: SearchMode } = {},
 ): Promise<SearchResponse> {
   const params = new URLSearchParams({ q: query, lang })
   if (opts.limit) params.set('limit', String(opts.limit))
+  if (opts.mode) params.set('mode', opts.mode)
 
   const path =
     opts.cert && opts.cert !== 'all'
@@ -131,6 +138,19 @@ export async function searchQuestions(
 
   if (res.status === 429) {
     throw new ApiError('検索が多すぎます。少し待ってからお試しください。', 'rate_limited', 429)
+  }
+
+  if (res.status === 503) {
+    // Semantic index / provider unavailable — surface the code so the caller
+    // can fall back to keyword search.
+    let code = 'semantic_unavailable'
+    try {
+      const body = (await res.json()) as { code?: string }
+      if (body.code) code = body.code
+    } catch {
+      // ignore parse failure — keep default code
+    }
+    throw new ApiError('Semantic search is temporarily unavailable.', code, 503)
   }
 
   return handleResponse<SearchResponse>(res)

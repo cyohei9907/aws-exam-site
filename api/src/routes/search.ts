@@ -1,5 +1,7 @@
 import { FastifyPluginAsync, FastifyReply } from 'fastify';
-import { loadManifest, loadChapter, QuestionTranslation } from '../lib/gcs';
+import { loadManifest, loadChapter, QuestionTranslation, Question } from '../lib/gcs';
+import { embedTexts, normalize } from '../lib/embeddings';
+import * as vectorStore from '../lib/vectorStore';
 
 // ─── Free chapters policy ─────────────────────────────────────────────────────
 // Mirrors chapters.ts (the content-access list, incl. Ch.1 previews). Search
@@ -27,6 +29,25 @@ interface SearchQuery {
   lang?: string;
   limit?: string;
   cert?: string;
+  mode?: string; // 'keyword' (default) | 'semantic'
+}
+
+// Shape returned for a single hit (shared by keyword and semantic paths).
+function toResult(question: Question, lang: Lang, score?: number) {
+  const translation = question[lang] ?? question.en ?? question.ja;
+  return {
+    id: question.id,
+    cert_id: question.cert_id,
+    type: question.type,
+    num_options: question.num_options,
+    difficulty: question.difficulty,
+    chapter: question.chapter,
+    correct_answers: question.correct_answers,
+    translation: translation
+      ? { stem: translation.stem, options: translation.options, analysis: translation.analysis }
+      : null,
+    ...(score !== undefined ? { score } : {}),
+  };
 }
 
 // ─── Lightweight per-IP rate limiter (no extra dependency) ─────────────────────
@@ -89,6 +110,7 @@ async function runSearch(
   const lang = rawLang as Lang;
   const limit = Math.min(Math.max(parseInt(rawQuery.limit ?? '20', 10) || 20, 1), 50);
   const needle = q.toLowerCase();
+  const mode = rawQuery.mode === 'semantic' ? 'semantic' : 'keyword';
 
   const manifest = await loadManifest();
 
@@ -101,6 +123,12 @@ async function runSearch(
     certIds = [scopeCertId];
   } else {
     certIds = manifest.certs.map((c) => c.cert_id);
+  }
+
+  // ── Semantic mode ────────────────────────────────────────────────────────────
+  if (mode === 'semantic') {
+    const certScope = scopeCertId && scopeCertId !== 'all' ? scopeCertId : null;
+    return runSemantic(certScope, q, lang, limit, reply);
   }
 
   // Build (certId, chapter) targets from free chapters that exist in the manifest.
@@ -127,23 +155,74 @@ async function runSearch(
       if (!matches(translation, needle)) continue;
       total += 1;
       if (results.length < limit) {
-        results.push({
-          id: question.id,
-          cert_id: question.cert_id,
-          type: question.type,
-          num_options: question.num_options,
-          difficulty: question.difficulty,
-          chapter: question.chapter,
-          correct_answers: question.correct_answers,
-          translation: translation
-            ? { stem: translation.stem, options: translation.options, analysis: translation.analysis }
-            : null,
-        });
+        results.push(toResult(question, lang));
       }
     }
   }
 
   return reply.send({ results, total, query: q, lang });
+}
+
+// ─── Semantic search implementation ─────────────────────────────────────────────
+// Embeds the query, ranks it against the precomputed free-chapter vectors, then
+// hydrates each hit's full question. Falls back to 503 `semantic_unavailable`
+// (never keyword) when the provider key or the embedding index is missing, so the
+// client can decide to retry in keyword mode.
+async function runSemantic(
+  certScope: string | null,
+  q: string,
+  lang: Lang,
+  limit: number,
+  reply: FastifyReply,
+) {
+  if (!process.env.DASHSCOPE_API_KEY) {
+    return reply.code(503).send({ code: 'semantic_unavailable', message: 'Semantic search is not configured.' });
+  }
+
+  let available = false;
+  try {
+    available = await vectorStore.hasLang(lang);
+  } catch {
+    available = false;
+  }
+  if (!available) {
+    return reply.code(503).send({ code: 'semantic_unavailable', message: 'Semantic index is unavailable.' });
+  }
+
+  // Embed + normalize the query.
+  let queryVec: Float32Array;
+  try {
+    const [raw] = await embedTexts([q]);
+    if (!raw) throw new Error('empty embedding response');
+    queryVec = normalize(raw);
+  } catch (err) {
+    reply.log.error({ err }, 'semantic query embedding failed');
+    return reply.code(503).send({ code: 'semantic_unavailable', message: 'Embedding provider error.' });
+  }
+
+  const hits = await vectorStore.semanticSearch(lang, queryVec, { cert: certScope, limit });
+
+  // Hydrate: load each distinct chapter once, then map hits back in score order.
+  const chapterKeys = new Set(hits.map((h) => `${h.cert_id}:${h.chapter}`));
+  const byId = new Map<string, Question>();
+  for (const key of chapterKeys) {
+    const [certId, chapterStr] = key.split(':');
+    try {
+      const questions = await loadChapter(certId, parseInt(chapterStr, 10));
+      for (const question of questions) byId.set(question.id, question);
+    } catch {
+      continue; // a bad chapter shouldn't fail the whole search
+    }
+  }
+
+  const results = [];
+  for (const h of hits) {
+    const question = byId.get(h.id);
+    if (!question) continue; // hit not found in current data → skip
+    results.push(toResult(question, lang, Math.round(h.score * 10000) / 10000));
+  }
+
+  return reply.send({ results, total: results.length, query: q, lang, mode: 'semantic' });
 }
 
 // ─── Route plugin ─────────────────────────────────────────────────────────────

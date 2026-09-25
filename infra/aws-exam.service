@@ -13,6 +13,14 @@ Environment="NODE_ENV=production"
 Environment="PORT=3001"
 Environment="HOST=127.0.0.1"
 
+# Semantic search (Qwen text-embedding-v3) requires the DashScope API key.
+# Do NOT commit the key here — provide it via a drop-in so it stays out of git:
+#   sudo systemctl edit aws-exam
+#   [Service]
+#   Environment="DASHSCOPE_API_KEY=<key from: gcloud secrets versions access latest \
+#     --secret=awsexam-qwen-api-key --project=iosapp-497614>"
+# Without it, keyword search works and semantic search returns 503 (UI falls back).
+
 ExecStart=/usr/bin/node /var/www/aws-exam-site/api/dist/index.js
 Restart=on-failure
 RestartSec=5
