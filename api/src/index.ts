@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import certsRoutes from './routes/certs';
 import chaptersRoutes from './routes/chapters';
+import searchRoutes from './routes/search';
 import sitemapRoutes from './routes/sitemap';
 import { getMetaForUrl, injectMeta, injectQuestions, injectJsonLd, buildHomeJsonLd, buildCertJsonLd, buildChapterJsonLd, buildBreadcrumbJsonLd, buildQuestionMeta, buildSingleQuestionJsonLd, injectSingleQuestion } from './lib/metaInjector';
 import { loadChapter } from './lib/gcs';
@@ -42,6 +43,7 @@ const start = async () => {
   // API routes
   await app.register(certsRoutes, { prefix: '/api' });
   await app.register(chaptersRoutes, { prefix: '/api' });
+  await app.register(searchRoutes, { prefix: '/api' });
 
   // Resolve web dist and read index.html BEFORE registering static/SSR routes
   const webDistPath = path.resolve(__dirname, '../../web/dist');

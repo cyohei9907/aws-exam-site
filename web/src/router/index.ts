@@ -4,6 +4,7 @@ import CertView from '@/views/CertView.vue'
 import PracticeView from '@/views/PracticeView.vue'
 import QuestionView from '@/views/QuestionView.vue'
 import ResultView from '@/views/ResultView.vue'
+import SearchView from '@/views/SearchView.vue'
 import { useSettingsStore } from '@/stores/settings'
 
 const router = createRouter({
@@ -19,6 +20,7 @@ const router = createRouter({
         { path: 'cert/:certId/chapter/:chapterId', component: PracticeView },
         { path: 'cert/:certId/chapter/:chapterId/question/:position', component: QuestionView },
         { path: 'results', component: ResultView },
+        { path: 'search', component: SearchView },
       ],
     },
     // English default routes (no prefix)
@@ -28,6 +30,7 @@ const router = createRouter({
     { path: '/cert/:certId/chapter/:chapterId', component: PracticeView },
     { path: '/cert/:certId/chapter/:chapterId/question/:position', component: QuestionView },
     { path: '/results', component: ResultView },
+    { path: '/search', component: SearchView },
   ],
   scrollBehavior(to) {
     if (to.hash) {

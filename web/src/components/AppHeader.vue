@@ -1,10 +1,26 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useSettingsStore } from '@/stores/settings'
 
 const route = useRoute()
+const router = useRouter()
 const settingsStore = useSettingsStore()
+
+// Header search — routes to the search page on submit.
+const searchTerm = ref('')
+const searchPlaceholder = computed(() => ({
+  ja: '問題をキーワード検索…',
+  en: 'Search questions…',
+  zh: '搜索题目…',
+}[settingsStore.lang]))
+
+function submitSearch() {
+  const q = searchTerm.value.trim()
+  if (q.length < 2) return
+  const prefix = settingsStore.lang === 'en' ? '' : `/${settingsStore.lang}`
+  router.push(`${prefix}/search?q=${encodeURIComponent(q)}`)
+}
 
 const CERT_NAMES: Record<string, string> = {
   'saa-c03': 'SAA-C03', 'sap-c02': 'SAP-C02', 'clf-c02': 'CLF-C02',
@@ -47,6 +63,20 @@ const homeLink = computed(() => {
       <nav v-if="breadcrumb" class="flex items-center text-sm mx-4 min-w-0">
         <span class="text-slate-300 truncate">{{ breadcrumb }}</span>
       </nav>
+
+      <!-- Search (persistent) -->
+      <form class="relative ml-auto w-40 sm:w-64 shrink-0" role="search" @submit.prevent="submitSearch">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+        </svg>
+        <input
+          v-model="searchTerm"
+          type="search"
+          :placeholder="searchPlaceholder"
+          :aria-label="searchPlaceholder"
+          class="w-full pl-9 pr-3 py-1.5 rounded-lg bg-slate-800 text-white text-sm placeholder-slate-400 border border-slate-700 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+        />
+      </form>
     </div>
   </header>
 </template>

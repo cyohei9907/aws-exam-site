@@ -38,6 +38,13 @@ export interface CheckResult {
   analysis: string
 }
 
+export interface SearchResponse {
+  results: Question[]
+  total: number
+  query: string
+  lang: string
+}
+
 // ─── Error types ──────────────────────────────────────────────────────────────
 
 export class ApiError extends Error {
@@ -99,5 +106,33 @@ export async function fetchChapter(
   }
 
   return handleResponse<Question[]>(res)
+}
+
+/**
+ * GET /api/search?q=&lang=&limit=&cert=   (cross-cert)
+ * GET /api/certs/{cert}/search?q=&lang=&limit=   (scoped to one cert)
+ * Searches question stem / options / analysis within FREE chapters only.
+ * Throws ApiError with code 'rate_limited' (status 429) when throttled.
+ */
+export async function searchQuestions(
+  query: string,
+  lang: string,
+  opts: { cert?: string; limit?: number } = {},
+): Promise<SearchResponse> {
+  const params = new URLSearchParams({ q: query, lang })
+  if (opts.limit) params.set('limit', String(opts.limit))
+
+  const path =
+    opts.cert && opts.cert !== 'all'
+      ? `/certs/${encodeURIComponent(opts.cert)}/search`
+      : '/search'
+
+  const res = await fetch(`${BASE_URL}${path}?${params.toString()}`)
+
+  if (res.status === 429) {
+    throw new ApiError('検索が多すぎます。少し待ってからお試しください。', 'rate_limited', 429)
+  }
+
+  return handleResponse<SearchResponse>(res)
 }
 
