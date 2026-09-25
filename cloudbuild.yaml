@@ -26,8 +26,8 @@ steps:
       - '-c'
       - |
         set -euo pipefail
-        ZONE=asia-northeast1-a
-        INSTANCE=acggs-prod
+        ZONE=us-west1-a
+        INSTANCE=acggs-prod-usw1
 
         # Suppress SSH host key prompts (fresh container, no known_hosts)
         mkdir -p ~/.ssh
