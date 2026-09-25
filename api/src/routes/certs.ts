@@ -5,7 +5,7 @@ import { loadManifest } from '../lib/gcs';
 
 // >1000q → 30% of chapters free; 500–900q → 3 chapters free; <500q → app only
 const FREE_CHAPTERS: Record<string, number[]> = {
-  'saa-c03': [1, 2, 3, 4, 5],      // 1389q / 17ch → 30% = 5
+  'saa-c03': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17], // all 17ch unlocked on web
   'sap-c02': [1, 2, 3],             // 748q
   'clf-c02': [1, 2, 3],             // 1087q / 11ch → 30% = 3
   'dva-c02': [1, 2, 3],             // 1251q / 13ch → 30% = 3

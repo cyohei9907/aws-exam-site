@@ -10,7 +10,7 @@ const CERTS_WITH_DATA = [
 ];
 
 const FREE_CHAPTERS: Record<string, number[]> = {
-  'saa-c03': [1, 2, 3, 4, 5],
+  'saa-c03': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
   'sap-c02': [1, 2, 3],
   'clf-c02': [1, 2, 3],
   'dva-c02': [1, 2, 3],

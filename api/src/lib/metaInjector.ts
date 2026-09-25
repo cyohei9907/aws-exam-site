@@ -35,7 +35,7 @@ const CERT_DATA: Record<string, CertEntry> = {
 
 // First N chapters are free to practice in the browser
 const FREE_CHAPTER_LIMIT: Record<string, number> = {
-  'saa-c03': 5, 'sap-c02': 3, 'clf-c02': 3,
+  'saa-c03': 17, 'sap-c02': 3, 'clf-c02': 3,
   'dva-c02': 3, 'dop-c02': 3, 'aif-c01': 3,
   'soa-c02': 1, 'ans-c01': 1, 'dea-c01': 1, 'scs-c02': 1,
 };

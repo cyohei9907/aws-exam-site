@@ -7,7 +7,7 @@ import * as vectorStore from '../lib/vectorStore';
 // Mirrors chapters.ts (the content-access list, incl. Ch.1 previews). Search
 // only ever scans free chapters, so locked/app-only content can never leak.
 const FREE_CHAPTERS: Record<string, number[]> = {
-  'saa-c03': [1, 2, 3, 4, 5],
+  'saa-c03': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
   'sap-c02': [1, 2, 3],
   'clf-c02': [1, 2, 3],
   'dva-c02': [1, 2, 3],
