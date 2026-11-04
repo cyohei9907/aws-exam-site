@@ -175,7 +175,7 @@ const LEVEL_COLORS: Record<string, string> = {
 
 const FREE_CHAPTERS: Record<string, number[]> = {
   'saa-c03': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
-  'sap-c02': [1, 2, 3],
+  'sap-c02': [1, 2, 3, 10],
   'clf-c02': [1, 2, 3], 'dva-c02': [1, 2, 3], 'dop-c02': [1, 2, 3], 'aif-c01': [1, 2, 3],
   'soa-c02': [1], 'ans-c01': [1], 'dea-c01': [1], 'mla-c01': [],
   'mls-c01': [], 'das-c01': [], 'scs-c02': [1],
@@ -189,9 +189,9 @@ const CERT_SEO_TITLES: Record<string, { ja: string; en: string; zh: string }> = 
     zh: 'AWS SAA-C03 解决方案架构师助理 — 1,389道免费练习题',
   },
   'sap-c02': {
-    ja: 'AWS SAP-C02 ソリューションアーキテクト プロフェッショナル — 748問 練習問題',
-    en: 'AWS SAP-C02 Solutions Architect Professional — 748 Practice Questions',
-    zh: 'AWS SAP-C02 解决方案架构师专业级 — 748道练习题',
+    ja: 'AWS SAP-C02 ソリューションアーキテクト プロフェッショナル — 888問 練習問題',
+    en: 'AWS SAP-C02 Solutions Architect Professional — 888 Practice Questions',
+    zh: 'AWS SAP-C02 解决方案架构师专业级 — 888道练习题',
   },
   'clf-c02': {
     ja: 'AWS CLF-C02 クラウドプラクティショナー — 1,087問 無料練習問題',

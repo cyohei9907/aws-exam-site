@@ -21,7 +21,7 @@ interface CertEntry {
 
 const CERT_DATA: Record<string, CertEntry> = {
   'saa-c03': { en: 'Solutions Architect Associate', ja: 'ソリューションアーキテクト アソシエイト', zh: '解决方案架构师 助理', total: 1389, free: true },
-  'sap-c02': { en: 'Solutions Architect Professional', ja: 'ソリューションアーキテクト プロフェッショナル', zh: '解决方案架构师 专业级', total: 748, free: true },
+  'sap-c02': { en: 'Solutions Architect Professional', ja: 'ソリューションアーキテクト プロフェッショナル', zh: '解决方案架构师 专业级', total: 888, free: true },
   'clf-c02': { en: 'Cloud Practitioner', ja: 'クラウドプラクティショナー', zh: '云从业者', total: 1087, free: true },
   'dva-c02': { en: 'Developer Associate', ja: 'デベロッパー アソシエイト', zh: '开发人员 助理', total: 1251, free: true },
   'soa-c02': { en: 'SysOps Administrator Associate', ja: 'SysOps アドミニストレーター アソシエイト', zh: 'SysOps 管理员 助理', total: 469, free: true },
@@ -40,7 +40,13 @@ const FREE_CHAPTER_LIMIT: Record<string, number> = {
   'soa-c02': 1, 'ans-c01': 1, 'dea-c01': 1, 'scs-c02': 1,
 };
 
+// Extra free chapters beyond the first-N limit
+const EXTRA_FREE_CHAPTERS: Record<string, number[]> = {
+  'sap-c02': [10],
+};
+
 function isFreeChap(certId: string, ch: number): boolean {
+  if (EXTRA_FREE_CHAPTERS[certId]?.includes(ch)) return true;
   return ch <= (FREE_CHAPTER_LIMIT[certId] ?? 0);
 }
 
