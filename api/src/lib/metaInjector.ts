@@ -20,7 +20,7 @@ interface CertEntry {
 }
 
 const CERT_DATA: Record<string, CertEntry> = {
-  'saa-c03': { en: 'Solutions Architect Associate', ja: 'ソリューションアーキテクト アソシエイト', zh: '解决方案架构师 助理', total: 1389, free: true },
+  'saa-c03': { en: 'Solutions Architect Associate', ja: 'ソリューションアーキテクト アソシエイト', zh: '解决方案架构师 助理', total: 1523, free: true },
   'sap-c02': { en: 'Solutions Architect Professional', ja: 'ソリューションアーキテクト プロフェッショナル', zh: '解决方案架构师 专业级', total: 888, free: true },
   'clf-c02': { en: 'Cloud Practitioner', ja: 'クラウドプラクティショナー', zh: '云从业者', total: 1087, free: true },
   'dva-c02': { en: 'Developer Associate', ja: 'デベロッパー アソシエイト', zh: '开发人员 助理', total: 1251, free: true },
@@ -35,7 +35,7 @@ const CERT_DATA: Record<string, CertEntry> = {
 
 // First N chapters are free to practice in the browser
 const FREE_CHAPTER_LIMIT: Record<string, number> = {
-  'saa-c03': 17, 'sap-c02': 3, 'clf-c02': 3,
+  'saa-c03': 18, 'sap-c02': 3, 'clf-c02': 3,
   'dva-c02': 3, 'dop-c02': 3, 'aif-c01': 3,
   'soa-c02': 1, 'ans-c01': 1, 'dea-c01': 1, 'scs-c02': 1,
 };
