@@ -112,15 +112,15 @@ usePageSEO(() => {
   const l = lang.value
   return {
     title: l === 'en'
-      ? 'Free AWS Certification Practice | 7,000+ Questions · 11 Exam Types'
+      ? 'Free AWS Certification Practice | 7,000+ Questions · 12 Exam Types'
       : l === 'zh'
-      ? 'AWS 认证考试免费练习题库 | 7,000+题 · 11种认证'
-      : 'AWS認定試験 無料練習問題集 | SAA・CLF・DVAなど11種類対応',
+      ? 'AWS 认证考试免费练习题库 | 7,000+题 · 12种认证'
+      : 'AWS認定試験 無料練習問題集 | SAA・CLF・DVAなど12種類対応',
     description: l === 'en'
-      ? 'Practice for AWS certifications with 7,000+ questions across 11 exam types (SAA-C03, CLF-C02, DVA-C02 and more). Free chapters available. Japanese, English, and Chinese supported.'
+      ? 'Practice for AWS certifications with 7,000+ questions across 12 exam types (SAA-C03, CLF-C02, DVA-C02 and more). Free chapters available. Japanese, English, and Chinese supported.'
       : l === 'zh'
-      ? 'AWS认证练习题库，覆盖SAA-C03、CLF-C02、DVA-C02等11种认证，共7,000+题，支持日语、英语、中文，含免费章节，iOS应用解锁全题+AI解析。'
-      : 'AWS認定試験11種の練習問題集。SAA-C03・CLF-C02・DVA-C02など7,000問以上。無料チャプターをブラウザで今すぐ解答・解説付き。iOSアプリで全問+AI解説。',
+      ? 'AWS认证练习题库，覆盖SAA-C03、CLF-C02、DVA-C02等12种认证，共7,000+题，支持日语、英语、中文，含免费章节，iOS应用解锁全题+AI解析。'
+      : 'AWS認定試験12種の練習問題集。SAA-C03・CLF-C02・DVA-C02など7,000問以上。無料チャプターをブラウザで今すぐ解答・解説付き。iOSアプリで全問+AI解説。',
   }
 })
 function isAppOnly(certId: string): boolean {

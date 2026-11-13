@@ -61,14 +61,14 @@ function homeMeta(lang: Lang, enPath: string): PageMeta {
   const canonical = lang === 'en' ? `${BASE_URL}/` : `${BASE_URL}/${lang}/`;
   if (lang === 'ja') return {
     lang, canonical, enPath, ogType: 'website',
-    title: 'AWS認定試験 練習問題 無料 2025 | SAA・SAP・CLF・DVA など11種類',
-    description: 'AWS認定試験11種の無料練習問題集。SAA-C03・SAP-C02・CLF-C02・DVA-C02など7,441問以上。無料チャプターをブラウザで今すぐ解答・解説付き。iOSアプリで全問+AI解説。',
+    title: 'AWS認定試験 練習問題 無料 2025 | SAA・SAP・CLF・DVA など12種類',
+    description: 'AWS認定試験12種の無料練習問題集。SAA-C03・SAP-C02・CLF-C02・DVA-C02など7,441問以上。無料チャプターをブラウザで今すぐ解答・解説付き。iOSアプリで全問+AI解説。',
     keywords: 'AWS認定試験,AWS練習問題,AWS模擬試験,AWS問題集,SAA-C03,SAP-C02,CLF-C02,DVA-C02,SOA-C02,DOP-C02,AIF-C01,AWS資格,AWS試験対策,AWSダンプ,無料,2025年,AWS認定資格,AWS合格',
   };
   if (lang === 'zh') return {
     lang, canonical, enPath, ogType: 'website',
-    title: 'AWS认证考试免费练习题 2025 | SAA、SAP、CLF、DVA 等11种认证',
-    description: 'AWS认证考试11种免费练习题集。SAA-C03、SAP-C02、CLF-C02、DVA-C02 等 7,441+ 道题，含解析。直接在浏览器练习，iOS App 解锁全部题目。',
+    title: 'AWS认证考试免费练习题 2025 | SAA、SAP、CLF、DVA 等12种认证',
+    description: 'AWS认证考试12种免费练习题集。SAA-C03、SAP-C02、CLF-C02、DVA-C02 等 7,441+ 道题，含解析。直接在浏览器练习，iOS App 解锁全部题目。',
     keywords: 'AWS认证,AWS考试,AWS练习题,AWS模拟题,AWS题库,SAA-C03,SAP-C02,CLF-C02,DVA-C02,SOA-C02,DOP-C02,AIF-C01,AWS备考,AWS认证考试,免费,2025',
   };
   return {
@@ -308,10 +308,10 @@ export function injectJsonLd(html: string, data: object): string {
 export function buildHomeJsonLd(lang: Lang): object {
   const name = lang === 'ja' ? 'AWS認定試験 練習問題' : lang === 'zh' ? 'AWS认证考试练习题' : 'AWS Exam Practice';
   const desc = lang === 'ja'
-    ? 'AWS認定試験11種の無料練習問題集。7,400問以上、解説付き。SAA-C03・SAP-C02・CLF-C02など。'
+    ? 'AWS認定試験12種の無料練習問題集。7,400問以上、解説付き。SAA-C03・SAP-C02・CLF-C02など。'
     : lang === 'zh'
-    ? 'AWS认证考试11种免费练习题集，7,400+道题，含解析。SAA-C03、SAP-C02、CLF-C02等。'
-    : 'Free AWS certification exam practice questions. 11 certifications, 7,400+ questions with explanations. SAA-C03, SAP-C02, CLF-C02, DVA-C02 and more.';
+    ? 'AWS认证考试12种免费练习题集，7,400+道题，含解析。SAA-C03、SAP-C02、CLF-C02等。'
+    : 'Free AWS certification exam practice questions. 12 certifications, 7,400+ questions with explanations. SAA-C03, SAP-C02, CLF-C02, DVA-C02 and more.';
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
