@@ -25,7 +25,7 @@ function submitSearch() {
 const CERT_NAMES: Record<string, string> = {
   'saa-c03': 'SAA-C03', 'sap-c02': 'SAP-C02', 'clf-c02': 'CLF-C02',
   'dva-c02': 'DVA-C02', 'soa-c02': 'SOA-C02', 'dop-c02': 'DOP-C02',
-  'aif-c01': 'AIF-C01', 'ans-c01': 'ANS-C01', 'das-c01': 'DAS-C01',
+  'aif-c01': 'AIF-C01', 'aip-c01': 'AIP-C01', 'ans-c01': 'ANS-C01', 'das-c01': 'DAS-C01',
   'dea-c01': 'DEA-C01', 'mla-c01': 'MLA-C01', 'mls-c01': 'MLS-C01',
   'scs-c02': 'SCS-C02',
 }

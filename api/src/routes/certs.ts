@@ -11,6 +11,7 @@ const FREE_CHAPTERS: Record<string, number[]> = {
   'dva-c02': [1, 2, 3],             // 1251q / 13ch → 30% = 3
   'dop-c02': [1, 2, 3],             // 632q
   'aif-c01': [1, 2, 3],             // 528q
+  'aip-c01': [1, 2],                // AIP-C01 screenshot set, all free on web
   'soa-c02': [],                    // 469q — app only
   'ans-c01': [],                    // 289q — app only
   'dea-c01': [],                    // 240q — app only

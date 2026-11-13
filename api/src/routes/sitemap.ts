@@ -6,7 +6,7 @@ const LANGS = ['en', 'ja', 'zh'] as const;
 
 const CERTS_WITH_DATA = [
   'saa-c03', 'sap-c02', 'clf-c02', 'dva-c02', 'soa-c02',
-  'dop-c02', 'aif-c01', 'ans-c01', 'dea-c01', 'mla-c01', 'scs-c02',
+  'dop-c02', 'aif-c01', 'aip-c01', 'ans-c01', 'dea-c01', 'mla-c01', 'scs-c02',
 ];
 
 const FREE_CHAPTERS: Record<string, number[]> = {
@@ -16,6 +16,7 @@ const FREE_CHAPTERS: Record<string, number[]> = {
   'dva-c02': [1, 2, 3],
   'dop-c02': [1, 2, 3],
   'aif-c01': [1, 2, 3],
+  'aip-c01': [1, 2],
   'soa-c02': [1],
   'ans-c01': [1],
   'dea-c01': [1],

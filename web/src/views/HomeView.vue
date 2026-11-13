@@ -64,7 +64,7 @@ const t = computed(() => ({
 // Preferred display order. Certs not returned by the API are silently skipped.
 const PREFERRED_ORDER = [
   'saa-c03', 'sap-c02', 'clf-c02', 'dva-c02', 'soa-c02', 'dop-c02',
-  'aif-c01', 'ans-c01', 'das-c01', 'dea-c01', 'mla-c01', 'mls-c01', 'scs-c02',
+  'aif-c01', 'aip-c01', 'ans-c01', 'das-c01', 'dea-c01', 'mla-c01', 'mls-c01', 'scs-c02',
 ]
 
 const CERT_DISPLAY: Record<string, Record<string, string>> = {
@@ -75,6 +75,7 @@ const CERT_DISPLAY: Record<string, Record<string, string>> = {
   'soa-c02': { en: 'SysOps Administrator Associate', ja: 'SysOps アドミニストレーター アソシエイト', zh: 'SysOps 管理员 - 助理' },
   'dop-c02': { en: 'DevOps Engineer Professional', ja: 'DevOps エンジニア プロフェッショナル', zh: 'DevOps 工程师 - 专业级' },
   'aif-c01': { en: 'AI Practitioner', ja: 'AI プラクティショナー', zh: 'AI 从业者' },
+  'aip-c01': { en: 'Generative AI Developer Professional', ja: '生成 AI デベロッパー プロフェッショナル', zh: '生成式 AI 开发人员 - 专业级' },
   'ans-c01': { en: 'Advanced Networking Specialty', ja: '高度なネットワーキング 専門知識', zh: '高级网络 - 专项认证' },
   'das-c01': { en: 'Data Analytics Specialty', ja: 'データ分析 専門知識', zh: '数据分析 - 专项认证' },
   'dea-c01': { en: 'Data Engineer Associate', ja: 'データエンジニア アソシエイト', zh: '数据工程师 - 助理' },
@@ -88,7 +89,7 @@ const CERT_LEVELS: Record<string, string> = {
   'dva-c02': 'Associate', 'soa-c02': 'Associate', 'dop-c02': 'Professional',
   'aif-c01': 'Foundational', 'ans-c01': 'Specialty', 'das-c01': 'Specialty',
   'dea-c01': 'Associate', 'mla-c01': 'Associate', 'mls-c01': 'Specialty',
-  'scs-c02': 'Specialty',
+  'scs-c02': 'Specialty', 'aip-c01': 'Professional',
 }
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -102,6 +103,7 @@ const FREE_CHAPTERS: Record<string, number[]> = {
   'saa-c03': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
   'sap-c02': [1, 2, 3, 10],
   'clf-c02': [1, 2, 3], 'dva-c02': [1, 2, 3], 'dop-c02': [1, 2, 3], 'aif-c01': [1, 2, 3],
+  'aip-c01': [1, 2],
   'soa-c02': [], 'ans-c01': [], 'dea-c01': [], 'mla-c01': [],
   'mls-c01': [], 'das-c01': [], 'scs-c02': [],
 }

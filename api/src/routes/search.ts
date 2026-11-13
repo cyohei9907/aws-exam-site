@@ -13,6 +13,7 @@ const FREE_CHAPTERS: Record<string, number[]> = {
   'dva-c02': [1, 2, 3],
   'dop-c02': [1, 2, 3],
   'aif-c01': [1, 2, 3],
+  'aip-c01': [1, 2],
   'soa-c02': [1],
   'ans-c01': [1],
   'dea-c01': [1],

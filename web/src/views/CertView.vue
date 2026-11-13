@@ -150,6 +150,7 @@ const CERT_DISPLAY: Record<string, { en: string; ja: string; zh: string }> = {
   'soa-c02': { en: 'SysOps Administrator Associate', ja: 'SysOps アドミニストレーター アソシエイト', zh: 'SysOps 管理员 - 助理' },
   'dop-c02': { en: 'DevOps Engineer Professional', ja: 'DevOps エンジニア プロフェッショナル', zh: 'DevOps 工程师 - 专业级' },
   'aif-c01': { en: 'AI Practitioner', ja: 'AI プラクティショナー', zh: 'AI 从业者' },
+  'aip-c01': { en: 'Generative AI Developer Professional', ja: '生成 AI デベロッパー プロフェッショナル', zh: '生成式 AI 开发人员 - 专业级' },
   'ans-c01': { en: 'Advanced Networking Specialty', ja: '高度なネットワーキング 専門知識', zh: '高级网络 - 专项认证' },
   'das-c01': { en: 'Data Analytics Specialty', ja: 'データ分析 専門知識', zh: '数据分析 - 专项认证' },
   'dea-c01': { en: 'Data Engineer Associate', ja: 'データエンジニア アソシエイト', zh: '数据工程师 - 助理' },
@@ -163,7 +164,7 @@ const CERT_LEVELS: Record<string, string> = {
   'dva-c02': 'Associate', 'soa-c02': 'Associate',    'dop-c02': 'Professional',
   'aif-c01': 'Foundational', 'ans-c01': 'Specialty', 'das-c01': 'Specialty',
   'dea-c01': 'Associate', 'mla-c01': 'Associate',    'mls-c01': 'Specialty',
-  'scs-c02': 'Specialty',
+  'scs-c02': 'Specialty', 'aip-c01': 'Professional',
 }
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -177,6 +178,7 @@ const FREE_CHAPTERS: Record<string, number[]> = {
   'saa-c03': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
   'sap-c02': [1, 2, 3, 10],
   'clf-c02': [1, 2, 3], 'dva-c02': [1, 2, 3], 'dop-c02': [1, 2, 3], 'aif-c01': [1, 2, 3],
+  'aip-c01': [1, 2],
   'soa-c02': [1], 'ans-c01': [1], 'dea-c01': [1], 'mla-c01': [],
   'mls-c01': [], 'das-c01': [], 'scs-c02': [1],
 }
@@ -217,6 +219,11 @@ const CERT_SEO_TITLES: Record<string, { ja: string; en: string; zh: string }> = 
     ja: 'AWS AIF-C01 AI プラクティショナー — 528問 練習問題',
     en: 'AWS AIF-C01 AI Practitioner — 528 Practice Questions',
     zh: 'AWS AIF-C01 AI 从业者 — 528道练习题',
+  },
+  'aip-c01': {
+    ja: 'AWS AIP-C01 生成 AI デベロッパー プロフェッショナル — 163問 無料練習問題',
+    en: 'AWS AIP-C01 Generative AI Developer Professional — 163 Free Practice Questions',
+    zh: 'AWS AIP-C01 生成式 AI 开发人员专业级 — 163道免费练习题',
   },
   'ans-c01': {
     ja: 'AWS ANS-C01 高度なネットワーキング 専門知識 — 289問 iOSアプリ全問学習',

@@ -10,6 +10,7 @@ const FREE_CHAPTERS: Record<string, number[]> = {
   'clf-c02': [1, 2, 3],             // 1087q / 11ch → 30% = 3
   'dva-c02': [1, 2, 3],             // 1251q / 13ch → 30% = 3
   'dop-c02': [1, 2, 3],             // 632q
+  'aip-c01': [1, 2],
   'aif-c01': [1, 2, 3],             // 528q
   'soa-c02': [1],                   // 469q — Ch.1 free preview
   'ans-c01': [1],                   // 289q — Ch.1 free preview

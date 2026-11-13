@@ -24,6 +24,7 @@ const SHORT_LABEL: Record<string, { line1: string; line2?: string }> = {
   'soa-c02': { line1: 'SysOps' },
   'dop-c02': { line1: 'DevOps' },
   'aif-c01': { line1: 'AI', line2: 'Practitioner' },
+  'aip-c01': { line1: 'GenAI', line2: 'Developer' },
   'ans-c01': { line1: 'Networking' },
   'das-c01': { line1: 'Data', line2: 'Analytics' },
   'dea-c01': { line1: 'Data', line2: 'Engineer' },

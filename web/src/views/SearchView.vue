@@ -19,6 +19,7 @@ const CERT_NAMES: Record<string, { ja: string; en: string; zh: string }> = {
   'soa-c02': { ja: 'SysOps アドミニストレーター アソシエイト', en: 'SysOps Administrator Associate', zh: 'SysOps 管理员助理' },
   'dop-c02': { ja: 'DevOps エンジニア プロフェッショナル', en: 'DevOps Engineer Professional', zh: 'DevOps 工程师专业级' },
   'aif-c01': { ja: 'AI プラクティショナー', en: 'AI Practitioner', zh: 'AI 从业者' },
+  'aip-c01': { ja: '生成 AI デベロッパー プロフェッショナル', en: 'Generative AI Developer Professional', zh: '生成式 AI 开发人员专业级' },
   'ans-c01': { ja: '高度なネットワーキング 専門知識', en: 'Advanced Networking Specialty', zh: '高级网络专业知识' },
   'dea-c01': { ja: 'データエンジニア アソシエイト', en: 'Data Engineer Associate', zh: '数据工程师助理' },
   'mla-c01': { ja: 'ML エンジニア アソシエイト', en: 'ML Engineer Associate', zh: 'ML 工程师助理' },
