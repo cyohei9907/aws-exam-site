@@ -6,6 +6,8 @@ import type { Question } from '@/api/client'
 import { useExamStore } from '@/stores/exam'
 import { useSettingsStore } from '@/stores/settings'
 import QuestionOption from '@/components/QuestionOption.vue'
+import RubyText from '@/components/RubyText.vue'
+import type { Lang } from '@/stores/settings'
 import AppDownloadBanner from '@/components/AppDownloadBanner.vue'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
@@ -18,6 +20,7 @@ const settingsStore = useSettingsStore()
 const certId = route.params.certId as string
 const chapterId = parseInt(route.params.chapterId as string)
 const lang = computed(() => settingsStore.lang)
+const furigana = computed(() => settingsStore.lang === 'ja' && settingsStore.furigana)
 
 // ─── SEO ─────────────────────────────────────────────────────────────────────
 const CERT_NAMES_SEO: Record<string, { ja: string; en: string; zh: string }> = {
@@ -75,8 +78,15 @@ const ui = computed(() => {
     viewResults:   l === 'en' ? 'View Results'   : l === 'zh' ? '查看结果'   : '結果を見る',
     questionLabel: l === 'en' ? 'Q'              : l === 'zh' ? '题'         : '問',
     of:            l === 'en' ? '/'              : l === 'zh' ? '/'          : '/',
+    furigana:      l === 'en' ? 'Furigana'       : l === 'zh' ? '假名注音'   : 'ふりがな',
   }
 })
+
+const LANGS: { id: Lang; label: string }[] = [
+  { id: 'ja', label: '日本語' },
+  { id: 'en', label: 'EN' },
+  { id: 'zh', label: '中文' },
+]
 
 // ─── State ────────────────────────────────────────────────────────────────────
 const loading = ref(true)
@@ -84,7 +94,7 @@ const loadError = ref<string | null>(null)
 const premiumRequired = ref(false)
 const analysisVisible = ref(false)
 
-const elapsedSeconds = ref(0)
+const elapsedSeconds = computed(() => examStore.elapsedSeconds)
 let timerInterval: ReturnType<typeof setInterval> | null = null
 
 const formattedTime = computed(() => {
@@ -96,7 +106,7 @@ const formattedTime = computed(() => {
 // ─── Load questions ────────────────────────────────────────────────────────────
 async function loadQuestions(currentLang: string, resetExam = true): Promise<Question[] | null> {
   try {
-    return await fetchChapter(certId, chapterId, currentLang)
+    return await fetchChapter(certId, chapterId, currentLang, currentLang === 'ja' && settingsStore.furigana)
   } catch (err: unknown) {
     if (
       err instanceof Error &&
@@ -114,12 +124,64 @@ async function loadQuestions(currentLang: string, resetExam = true): Promise<Que
   }
 }
 
+// ?q=N jumps to question N. N is the position in this chapter (1-based, as in
+// the sidebar); a number beyond the chapter length is matched against the
+// question number printed in the stem ("Q83. ...").
+function indexFromQuery(): number | null {
+  const n = parseInt(String(route.query.q ?? ''), 10)
+  if (!Number.isFinite(n) || n < 1) return null
+  if (n <= examStore.questions.length) return n - 1
+  const i = examStore.questions.findIndex((q) => q.translation?.stem.startsWith(`Q${n}.`))
+  return i >= 0 ? i : null
+}
+
 onMounted(async () => {
-  timerInterval = setInterval(() => elapsedSeconds.value++, 1000)
-  const qs = await loadQuestions(lang.value, true)
-  if (qs) examStore.initExam(certId, chapterId, qs)
+  timerInterval = setInterval(() => examStore.elapsedSeconds++, 1000)
+  // A language switch re-mounts this view (different route prefix); keep the
+  // running session (answers, position, timer) when it is the same chapter.
+  const resume = history.state?.keepExam === true
+    && examStore.certId === certId && examStore.chapterId === chapterId
+    && examStore.questions.length > 0
+  const qs = await loadQuestions(lang.value, !resume)
+  if (qs) {
+    if (resume) examStore.updateTranslations(qs)
+    else examStore.initExam(certId, chapterId, qs)
+    const idx = indexFromQuery()
+    if (idx !== null) examStore.goTo(idx)
+    if (resume) analysisVisible.value = currentAnswer.value?.checked ?? false
+  }
   loading.value = false
 })
+
+// Keep ?q= in the address bar in sync with the current question
+watch(() => examStore.currentIndex, (i) => {
+  if (loading.value || premiumRequired.value) return
+  const q = String(i + 1)
+  if (route.query.q !== q) router.replace({ query: { ...route.query, q } })
+})
+
+// React to manual edits of ?q= while on the page
+watch(() => route.query.q, () => {
+  if (loading.value) return
+  const idx = indexFromQuery()
+  if (idx !== null && idx !== examStore.currentIndex) {
+    analysisVisible.value = false
+    examStore.goTo(idx)
+  }
+})
+
+function switchLang(l: Lang) {
+  if (l === lang.value) return
+  const base = route.path.replace(/^\/(ja|zh)(?=\/|$)/, '') || '/'
+  const path = l === 'en' ? base : `/${l}${base}`
+  router.replace({ path, query: { ...route.query, q: String(examStore.currentIndex + 1) }, state: { keepExam: true } })
+}
+
+async function toggleFurigana() {
+  settingsStore.setFurigana(!settingsStore.furigana)
+  const qs = await loadQuestions(lang.value, false)
+  if (qs) examStore.updateTranslations(qs)
+}
 
 onUnmounted(() => {
   if (timerInterval !== null) { clearInterval(timerInterval); timerInterval = null }
@@ -257,9 +319,27 @@ function handleNavDot(index: number) {
             <span class="text-sm text-gray-600">
               {{ ui.questionLabel }} {{ examStore.currentIndex + 1 }} {{ ui.of }} {{ examStore.totalQuestions }}
             </span>
-            <span class="text-sm font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-700">
-              ⏱ {{ formattedTime }}
-            </span>
+            <div class="flex items-center gap-2">
+              <button
+                v-if="lang === 'ja'"
+                @click="toggleFurigana"
+                :aria-pressed="settingsStore.furigana"
+                :class="['text-xs px-2 py-1 rounded-md border transition-colors',
+                  settingsStore.furigana ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50']"
+              >{{ ui.furigana }}</button>
+              <div class="inline-flex rounded-md border border-gray-300 overflow-hidden text-xs" role="group" aria-label="Language">
+                <button
+                  v-for="l in LANGS"
+                  :key="l.id"
+                  @click="switchLang(l.id)"
+                  :aria-pressed="lang === l.id"
+                  :class="['px-2 py-1 transition-colors', lang === l.id ? 'bg-slate-800 text-white' : 'bg-white text-gray-600 hover:bg-gray-50']"
+                >{{ l.label }}</button>
+              </div>
+              <span class="text-sm font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-700">
+                ⏱ {{ formattedTime }}
+              </span>
+            </div>
           </div>
           <Progress :model-value="progressPct" class="h-2" />
         </div>
@@ -277,8 +357,8 @@ function handleNavDot(index: number) {
           </div>
 
           <!-- Question stem -->
-          <p class="text-gray-900 text-base leading-relaxed mb-6 whitespace-pre-wrap">
-            {{ currentQuestion.translation.stem }}
+          <p class="text-gray-900 text-base mb-6 whitespace-pre-wrap">
+            <RubyText :text="currentQuestion.translation.stem" :segs="furigana ? currentQuestion.ruby?.stem : undefined" />
           </p>
 
           <!-- Options -->
@@ -288,8 +368,9 @@ function handleNavDot(index: number) {
               :key="label"
               :label="label"
               :text="text"
+              :ruby="furigana ? currentQuestion.ruby?.options[label] : undefined"
               :state="getOptionState(label)"
-              :disabled="isChecked || checkingAnswer"
+              :disabled="isChecked"
               @select="examStore.selectOption(currentQuestion!.id, label, isMultiple)"
             />
           </div>
@@ -300,8 +381,11 @@ function handleNavDot(index: number) {
             class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg"
           >
             <div class="text-amber-700 font-semibold text-sm mb-2">{{ ui.explanation }}</div>
-            <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {{ currentAnswer?.checkResult?.analysis }}
+            <p class="text-sm text-gray-700 whitespace-pre-wrap">
+              <RubyText
+                :text="currentQuestion.translation.analysis || currentAnswer?.checkResult?.analysis || ''"
+                :segs="furigana ? currentQuestion.ruby?.analysis : undefined"
+              />
             </p>
           </div>
 

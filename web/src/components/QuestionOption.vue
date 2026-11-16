@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import RubyText from '@/components/RubyText.vue'
+import type { RubySeg } from '@/api/client'
 
 const props = defineProps<{
   label: string
   text: string
+  ruby?: RubySeg[]
   state: 'normal' | 'selected' | 'correct' | 'wrong' | 'correct-unselected'
   disabled: boolean
 }>()
@@ -42,7 +45,7 @@ const stateClasses = computed(() => {
     class="w-full rounded-lg p-4 flex items-start gap-3 transition-colors text-left"
   >
     <span class="font-bold text-sm w-6 shrink-0">{{ label }}.</span>
-    <span class="flex-1 text-sm leading-relaxed">{{ text }}</span>
+    <RubyText class="flex-1 text-sm" :text="text" :segs="ruby" />
     <span
       v-if="state === 'correct' || state === 'correct-unselected'"
       class="text-green-600 shrink-0"

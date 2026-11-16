@@ -21,6 +21,15 @@ export interface QuestionTranslation {
   analysis: string
 }
 
+// Furigana segments: plain text, or [kanji, hiragana reading]
+export type RubySeg = string | [string, string]
+
+export interface RubyTranslation {
+  stem: RubySeg[]
+  options: Record<string, RubySeg[]>
+  analysis: RubySeg[]
+}
+
 export interface Question {
   id: string
   cert_id: string
@@ -30,6 +39,7 @@ export interface Question {
   chapter: number
   correct_answers: string[]
   translation: QuestionTranslation
+  ruby?: RubyTranslation // only for lang=ja with furigana=1
   score?: number // present on semantic results (cosine similarity, 0–1)
 }
 
@@ -100,9 +110,11 @@ export async function fetchChapter(
   certId: string,
   chapterId: number,
   lang: string,
+  furigana = false,
 ): Promise<Question[]> {
+  const ruby = furigana && lang === 'ja' ? '&furigana=1' : ''
   const res = await fetch(
-    `${BASE_URL}/certs/${encodeURIComponent(certId)}/chapters/${chapterId}?lang=${encodeURIComponent(lang)}`,
+    `${BASE_URL}/certs/${encodeURIComponent(certId)}/chapters/${chapterId}?lang=${encodeURIComponent(lang)}${ruby}`,
   )
 
   if (res.status === 403) {

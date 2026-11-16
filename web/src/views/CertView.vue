@@ -302,7 +302,7 @@ const certName = computed(() => {
 // ─── Chapter click ────────────────────────────────────────────────────────────
 function handleChapterClick(chapter: number) {
   if (isFreeChapter(certId, chapter)) {
-    router.push(`/cert/${certId}/chapter/${chapter}`)
+    router.push(`${lang.value === 'en' ? '' : `/${lang.value}`}/cert/${certId}/chapter/${chapter}`)
   } else {
     showDownloadPrompt.value = true
     // Scroll to banner

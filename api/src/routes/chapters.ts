@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { loadChapter, QuestionTranslation } from '../lib/gcs';
+import { rubyFor } from '../lib/furigana';
 
 // ─── Free chapters policy ─────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ type Lang = 'ja' | 'en' | 'zh';
 
 interface GetChapterQuery {
   lang?: string;
+  furigana?: string;
 }
 
 interface CheckBody {
@@ -74,8 +76,15 @@ const chaptersRoutes: FastifyPluginAsync = async (fastify) => {
 
     const questions = await loadChapter(certId, chapterId);
 
-    const result = questions.map((q) => {
+    const wantRuby = lang === 'ja' && request.query.furigana === '1';
+    const result = await Promise.all(questions.map(async (q) => {
       const translation: QuestionTranslation | undefined = q[lang];
+      const ruby = wantRuby && translation
+        ? await rubyFor(`${q.id}:${q.updated_at ?? ''}`, translation).catch((err) => {
+            request.log.warn({ err }, 'furigana generation failed');
+            return undefined;
+          })
+        : undefined;
       return {
         id: q.id,
         cert_id: q.cert_id,
@@ -91,8 +100,9 @@ const chaptersRoutes: FastifyPluginAsync = async (fastify) => {
               analysis: translation.analysis,
             }
           : null,
+        ...(ruby ? { ruby } : {}),
       };
-    });
+    }));
 
     return reply.send(result);
   });

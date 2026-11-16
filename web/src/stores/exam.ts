@@ -17,6 +17,8 @@ export const useExamStore = defineStore('exam', () => {
   const answers = ref<Map<string, AnswerRecord>>(new Map())
   const loading = ref<boolean>(false)
   const error = ref<string | null>(null)
+  // Practice timer lives here so it survives a language switch (view remount)
+  const elapsedSeconds = ref<number>(0)
 
   const currentQuestion = computed(() => questions.value[currentIndex.value] ?? null)
   const totalQuestions = computed(() => questions.value.length)
@@ -53,6 +55,7 @@ export const useExamStore = defineStore('exam', () => {
     currentIndex.value = 0
     answers.value = new Map()
     error.value = null
+    elapsedSeconds.value = 0
   }
 
   function selectOption(questionId: string, option: string, isMultiple: boolean) {
@@ -137,6 +140,7 @@ export const useExamStore = defineStore('exam', () => {
     answers,
     loading,
     error,
+    elapsedSeconds,
     currentQuestion,
     totalQuestions,
     answeredCount,
