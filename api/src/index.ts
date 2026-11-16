@@ -10,6 +10,7 @@ import sitemapRoutes from './routes/sitemap';
 import { getMetaForUrl, injectMeta, injectQuestions, injectJsonLd, buildHomeJsonLd, buildCertJsonLd, buildChapterJsonLd, buildBreadcrumbJsonLd, buildQuestionMeta, buildSingleQuestionJsonLd, injectSingleQuestion } from './lib/metaInjector';
 import { loadChapter } from './lib/gcs';
 import * as vectorStore from './lib/vectorStore';
+import { toRuby } from './lib/furigana';
 
 // Free chapters whose question text we expose in SSR HTML for indexing
 const FREE_CHAPTERS: Record<string, number[]> = {
@@ -161,6 +162,8 @@ const start = async () => {
   const port = parseInt(process.env.PORT ?? '3000', 10);
   const host = process.env.HOST ?? '0.0.0.0';
   await app.listen({ port, host });
+  // Load the furigana dictionary in the background so the first ja request is fast
+  toRuby('漢字').catch((err) => app.log.warn({ err }, 'furigana warm-up failed'));
 };
 
 start().catch((err) => {
