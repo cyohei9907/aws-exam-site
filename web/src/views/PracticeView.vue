@@ -79,6 +79,8 @@ const ui = computed(() => {
     questionLabel: l === 'en' ? 'Q'              : l === 'zh' ? '题'         : '問',
     of:            l === 'en' ? '/'              : l === 'zh' ? '/'          : '/',
     furigana:      l === 'en' ? 'Furigana'       : l === 'zh' ? '假名注音'   : 'ふりがな',
+    studyMode:     l === 'en' ? 'Study mode'     : l === 'zh' ? '背题模式'   : '暗記モード',
+    answerIs:      l === 'en' ? 'Answer'         : l === 'zh' ? '正确答案'   : '正解',
   }
 })
 
@@ -211,6 +213,10 @@ const progressPct = computed(() =>
 function getOptionState(
   label: string,
 ): 'normal' | 'selected' | 'correct' | 'wrong' | 'correct-unselected' {
+  // Study mode: highlight the correct option(s), no answering
+  if (studyMode.value) {
+    return currentQuestion.value?.correct_answers.includes(label) ? 'correct-unselected' : 'normal'
+  }
   const answer = currentAnswer.value
   if (!answer) return 'normal'
   const selected = answer.selected.includes(label)
@@ -242,6 +248,24 @@ function handleCheck() {
   examStore.checkQuestion(currentQuestion.value.id, answer.selected)
   analysisVisible.value = true
 }
+
+const studyMode = computed(() => settingsStore.studyMode)
+const isLast = computed(() => examStore.currentIndex === examStore.totalQuestions - 1)
+
+function toggleStudyMode() {
+  settingsStore.setStudyMode(!settingsStore.studyMode)
+  analysisVisible.value = currentAnswer.value?.checked ?? false
+}
+
+// ←/→ move between questions (handy when memorising); ignored while typing
+function onKeydown(e: KeyboardEvent) {
+  const t = e.target as HTMLElement | null
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+  if (e.key === 'ArrowRight' && !isLast.value) { handleNext() }
+  else if (e.key === 'ArrowLeft') { handlePrev() }
+}
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
 function handleNext() {
   analysisVisible.value = false
@@ -319,7 +343,13 @@ function handleNavDot(index: number) {
             <span class="text-sm text-gray-600">
               {{ ui.questionLabel }} {{ examStore.currentIndex + 1 }} {{ ui.of }} {{ examStore.totalQuestions }}
             </span>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap justify-end">
+              <button
+                @click="toggleStudyMode"
+                :aria-pressed="studyMode"
+                :class="['text-xs px-2 py-1 rounded-md border transition-colors',
+                  studyMode ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50']"
+              >{{ ui.studyMode }}</button>
               <button
                 v-if="lang === 'ja'"
                 @click="toggleFurigana"
@@ -370,14 +400,14 @@ function handleNavDot(index: number) {
               :text="text"
               :ruby="furigana ? currentQuestion.ruby?.options[label] : undefined"
               :state="getOptionState(label)"
-              :disabled="isChecked"
+              :disabled="isChecked || studyMode"
               @select="examStore.selectOption(currentQuestion!.id, label, isMultiple)"
             />
           </div>
 
           <!-- Analysis -->
           <div
-            v-if="isChecked && analysisVisible"
+            v-if="studyMode || (isChecked && analysisVisible)"
             class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg"
           >
             <div class="text-amber-700 font-semibold text-sm mb-2">{{ ui.explanation }}</div>
@@ -399,8 +429,11 @@ function handleNavDot(index: number) {
               {{ ui.prev }}
             </Button>
 
+            <span v-if="studyMode" class="text-sm font-semibold text-green-700">
+              {{ ui.answerIs }}: {{ currentQuestion.correct_answers.join(', ') }}
+            </span>
             <Button
-              v-if="!isChecked"
+              v-else-if="!isChecked"
               @click="handleCheck"
               :disabled="!currentAnswer || currentAnswer.selected.length === 0"
               class="bg-blue-600 hover:bg-blue-700 text-white"
@@ -417,9 +450,10 @@ function handleNavDot(index: number) {
 
             <Button
               @click="handleNext"
-              :class="examStore.currentIndex === examStore.totalQuestions - 1 ? 'bg-green-600 hover:bg-green-700 text-white' : ''"
+              :disabled="studyMode && isLast"
+              :class="isLast && !studyMode ? 'bg-green-600 hover:bg-green-700 text-white' : ''"
             >
-              {{ examStore.currentIndex === examStore.totalQuestions - 1 ? ui.viewResults : ui.next }}
+              {{ isLast && !studyMode ? ui.viewResults : ui.next }}
             </Button>
           </div>
         </div>

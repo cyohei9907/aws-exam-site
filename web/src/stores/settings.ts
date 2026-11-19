@@ -19,5 +19,13 @@ export const useSettingsStore = defineStore('settings', () => {
     localStorage.setItem('lang', newLang)
   }
 
-  return { lang, setLang, furigana, setFurigana }
+  // 背题 (study) mode: show the correct answer + explanation right away
+  const studyMode = ref<boolean>(localStorage.getItem('studyMode') === '1')
+
+  function setStudyMode(on: boolean) {
+    studyMode.value = on
+    localStorage.setItem('studyMode', on ? '1' : '0')
+  }
+
+  return { lang, setLang, furigana, setFurigana, studyMode, setStudyMode }
 })
